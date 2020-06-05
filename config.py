@@ -62,19 +62,6 @@ def build_config(args, results_str):
     if not os.path.isdir(SAVE_DIR):
         os.makedirs(SAVE_DIR)
 
-    # sys.stdout = open(LOG_FILE, 'a+')
-
-    # Conversation splits
-#     TRAIN_CONV, VALID_CONV = [], []
-#     for meta, subject in zip(META_DIRS, args.subjects):
-#         print(f'Subject: {subject}')
-#         print(f'Training Data:: ', end='')
-#         TRAIN_CONV.append(
-#             read_file("%s%s%s" % (meta, subject, CONFIG["train_convs"])))
-#         print(f'Validation Data:: ', end='')
-#         VALID_CONV.append(
-#             read_file("%s%s%s" % (meta, subject, CONFIG["valid_convs"])))
-
     DIR_DICT = dict(CONV_DIRS=CONV_DIRS,
                     META_DIRS=META_DIRS,
                     SAVE_DIR=SAVE_DIR,
