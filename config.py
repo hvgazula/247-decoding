@@ -1,7 +1,5 @@
 import os
 
-from utils import read_file
-
 
 def return_config_dict():
     '''

@@ -1,9 +1,9 @@
+import sys
+from datetime import datetime
+
 from arg_parser import arg_parser
 from config import build_config
-from datetime import datetime
-import sys
 from utils import fix_random_seed
-
 
 now = datetime.now()
 date_str = now.strftime("%A %d/%m/%Y %H:%M:%S")
