@@ -1,3 +1,4 @@
+import json
 import os
 
 
@@ -76,7 +77,23 @@ def build_config(args, results_str):
     CONFIG.update(vars(args))
 
     CONFIG["electrode_list"] = [
-        range(1, k + 1) for k in CONFIG["max_electrodes"]
+        list(range(1, k + 1)) for k in CONFIG["max_electrodes"]
     ]
 
+    write_config(CONFIG)
+
     return CONFIG
+
+
+def write_config(dictionary):
+    """[summary]
+
+    Args:
+        CONFIG ([type]): [description]
+    """
+    json_object = json.dumps(dictionary, indent=4)
+
+    # Writing to sample.json
+    config_file = os.path.join(dictionary['SAVE_DIR'], 'config.json')
+    with open(config_file, "w") as outfile:
+        outfile.write(json_object)
