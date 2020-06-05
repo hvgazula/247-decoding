@@ -6,6 +6,7 @@ import torch
 from arg_parser import arg_parser
 from build_matrices import build_design_matrices_seq2seq
 from config import build_config
+from plot_utils import figure5
 from utils import fix_random_seed
 
 now = datetime.now()
@@ -43,3 +44,7 @@ else:
                                                     delimiter=" ",
                                                     aug_shift_ms=[-1000, -500],
                                                     max_num_bins=0)
+
+    print('Plotting Distribution of Signal Lengths')
+    seq_lengths = [seq.shape[0] for seq in signals]
+    figure5(CONFIG["SAVE_DIR"], seq_lengths, 'all')
