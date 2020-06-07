@@ -2,15 +2,17 @@ import sys
 from datetime import datetime
 
 import torch
+import torch.utils.data as data
 from sklearn.model_selection import train_test_split
 
 from arg_parser import arg_parser
 from build_matrices import build_design_matrices_seq2seq
 from config import build_config
+from dl_utils import Brain2TextDataset, MyCollator
 from filter_utils import filter_by_labels, filter_by_signals
 from plot_utils import figure5
 from rw_utils import bigram_counts_to_csv
-from utils import fix_random_seed
+from utils import fix_random_seed, transform_labels
 from vocab_builder import create_vocab
 
 now = datetime.now()
@@ -79,3 +81,23 @@ else:
     word2freq, word_list, n_classes, vocab, i2w = create_vocab(CONFIG,
                                                                y_train,
                                                                classify=False)
+
+    print('Transforming Labels')
+    y_train = transform_labels(CONFIG, vocab, y_train)
+    y_test = transform_labels(CONFIG, vocab, y_test)
+
+    print('Creating Dataset Objects')
+    train_ds = Brain2TextDataset(X_train, y_train)
+    valid_ds = Brain2TextDataset(X_test, y_test)
+
+    print('Creating DataLoader Objects')
+    my_collator = MyCollator(CONFIG, vocab)
+    train_dl = data.DataLoader(train_ds,
+                               batch_size=args.batch_size,
+                               shuffle=True,
+                               num_workers=CONFIG["num_cpus"],
+                               collate_fn=my_collator)
+    valid_dl = data.DataLoader(valid_ds,
+                               batch_size=args.batch_size,
+                               num_workers=CONFIG["num_cpus"],
+                               collate_fn=my_collator)

@@ -159,3 +159,17 @@ def remove_duplicates(grams):
     df = df.drop(columns=['fw', 'sw'])
     df = df[sorted(df.columns)]
     return list(df.to_records(index=False))
+
+
+def transform_labels(CONFIG, vocabulary, label_list):
+    start_tok = CONFIG["begin_token"]
+    stop_tok = CONFIG["end_token"]
+
+    transformed_label_list = []
+    for word_pair in label_list:
+        word_pair = [vocabulary[x] for x in word_pair]
+        word_pair.insert(0, vocabulary[start_tok])  # Add start token
+        word_pair.append(vocabulary[stop_tok])  # Add end token
+        transformed_label_list.append(word_pair)
+
+    return transformed_label_list
