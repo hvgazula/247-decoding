@@ -43,6 +43,7 @@ classify = False if (args.model in MODEL_OBJ
 if classify:
     pass
 else:
+    print('Pre-filtering Count: ')
     signals, labels = build_design_matrices_seq2seq(CONFIG,
                                                     delimiter=" ",
                                                     aug_shift_ms=[-1000, -500],
@@ -53,7 +54,11 @@ else:
     figure5(CONFIG["SAVE_DIR"], seq_lengths, 'all')
 
     signals, labels = filter_by_signals(signals, labels, 75)
+    assert len(signals) == len(labels), "Size Mismatch: Filter 1"
+    print(f'Number of Examples (Post Signal Length Cutoff): {len(signals)}')
     signals, labels = filter_by_labels(signals, labels, 30)
+    assert len(signals) == len(labels), "Size Mismatch: Filter 2"
+    print(f'Number of Examples (Post Class Size Cutoff): {len(signals)}')
 
     bigram_counts_to_csv(CONFIG, labels, 'mixed')
 
@@ -65,3 +70,6 @@ else:
 
     bigram_counts_to_csv(CONFIG, y_train, 'train')
     bigram_counts_to_csv(CONFIG, y_test, 'test')
+
+    print(f'Size of Training Set is: {len(X_train)}')
+    print(f'Size of Test Set is: {len(X_test)}')
