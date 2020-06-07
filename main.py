@@ -2,12 +2,14 @@ import sys
 from datetime import datetime
 
 import torch
+from sklearn.model_selection import train_test_split
 
 from arg_parser import arg_parser
 from build_matrices import build_design_matrices_seq2seq
 from config import build_config
 from filter_utils import filter_by_labels, filter_by_signals
 from plot_utils import figure5
+from rw_utils import bigram_counts_to_csv
 from utils import fix_random_seed
 
 now = datetime.now()
@@ -52,3 +54,14 @@ else:
 
     signals, labels = filter_by_signals(signals, labels, 75)
     signals, labels = filter_by_labels(signals, labels, 30)
+
+    bigram_counts_to_csv(CONFIG, labels, 'mixed')
+
+    X_train, X_test, y_train, y_test = train_test_split(signals,
+                                                        labels,
+                                                        stratify=labels,
+                                                        test_size=0.30,
+                                                        random_state=args.seed)
+
+    bigram_counts_to_csv(CONFIG, y_train, 'train')
+    bigram_counts_to_csv(CONFIG, y_test, 'test')
