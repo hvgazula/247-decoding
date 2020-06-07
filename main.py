@@ -6,6 +6,7 @@ import torch
 from arg_parser import arg_parser
 from build_matrices import build_design_matrices_seq2seq
 from config import build_config
+from filter_utils import filter_by_labels, filter_by_signals
 from plot_utils import figure5
 from utils import fix_random_seed
 
@@ -48,3 +49,6 @@ else:
     print('Plotting Distribution of Signal Lengths')
     seq_lengths = [seq.shape[0] for seq in signals]
     figure5(CONFIG["SAVE_DIR"], seq_lengths, 'all')
+
+    signals, labels = filter_by_signals(signals, labels, 75)
+    signals, labels = filter_by_labels(signals, labels, 30)

@@ -17,7 +17,7 @@ def arg_parser(default_args=None):
 '''
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, default='MeNTAL')
-    parser.add_argument('--subjects', nargs='*', default=['676'])
+    parser.add_argument('--subjects', nargs='*', default=['625'])
     parser.add_argument('--shift', type=int, default=0)
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--gpus', type=int, default=4)
@@ -27,7 +27,7 @@ def arg_parser(default_args=None):
     parser.add_argument('--bin-size', type=int, default=50)
     parser.add_argument('--init-model', type=str, default=None)
     parser.add_argument('--no-plot', action='store_false', default=False)
-    parser.add_argument('--max-electrodes', nargs='*', type=int, default=[64])
+    parser.add_argument('--max-electrodes', nargs='*', type=int, default=[55])
     parser.add_argument('--vocab-min-freq', type=int, default=1)
     parser.add_argument('--vocab-max-freq', type=int, default=1000000)
     parser.add_argument('--max-num-bins', type=int, default=1000000)
