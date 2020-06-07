@@ -32,3 +32,12 @@ def bigram_counts_to_csv(CONFIG, labels, data_str=None):
     df.to_csv(os.path.join(CONFIG["SAVE_DIR"], file_name), index=False)
 
     return None
+
+
+def save_word_counter(CONFIG, word2freq):
+    '''Save word counter'''
+    print("Saving word counter")
+    df = pd.Series(word2freq).rename_axis(['Word'
+                                           ]).reset_index(name='Frequency')
+    df = format_dataframe(df)
+    df.to_csv(os.path.join(CONFIG["SAVE_DIR"], 'word2freq.csv'), index=False)

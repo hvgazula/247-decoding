@@ -11,6 +11,7 @@ from filter_utils import filter_by_labels, filter_by_signals
 from plot_utils import figure5
 from rw_utils import bigram_counts_to_csv
 from utils import fix_random_seed
+from vocab_builder import create_vocab
 
 now = datetime.now()
 date_str = now.strftime("%A %d/%m/%Y %H:%M:%S")
@@ -73,3 +74,8 @@ else:
 
     print(f'Size of Training Set is: {len(X_train)}')
     print(f'Size of Test Set is: {len(X_test)}')
+
+    print('Building Vocabulary')
+    word2freq, word_list, n_classes, vocab, i2w = create_vocab(CONFIG,
+                                                               y_train,
+                                                               classify=False)
