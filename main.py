@@ -1,15 +1,20 @@
+import math
+import os
 import sys
 from datetime import datetime
 
 import torch
+import torch.nn as nn
 import torch.utils.data as data
 from sklearn.model_selection import train_test_split
+from transformers import AdamW
 
 from arg_parser import arg_parser
 from build_matrices import build_design_matrices_seq2seq
 from config import build_config
 from dl_utils import Brain2TextDataset, MyCollator
 from filter_utils import filter_by_labels, filter_by_signals
+from model_utils import return_model
 from plot_utils import figure5
 from rw_utils import bigram_counts_to_csv
 from utils import fix_random_seed, transform_labels
@@ -101,3 +106,25 @@ else:
                                batch_size=args.batch_size,
                                num_workers=CONFIG["num_cpus"],
                                collate_fn=my_collator)
+
+    model = return_model(args, CONFIG, vocab)
+
+    # Initialize loss and optimizer
+    criterion = nn.CrossEntropyLoss()
+    step_size = int(math.ceil(len(train_ds) / args.batch_size))
+    optimizer = AdamW(model.parameters(),
+                      lr=args.lr,
+                      weight_decay=args.weight_decay)
+    scheduler = None
+
+    # Move model and loss to GPUs
+    if args.gpus:
+        if args.gpus > 1:
+            model = nn.DataParallel(model)
+
+    model.to(DEVICE)
+
+    print('Printing Model Summary')
+    with open(os.path.join(CONFIG["SAVE_DIR"], 'model_summary'),
+              'w') as file_h:
+        print(model, file=file_h)
