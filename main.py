@@ -107,24 +107,25 @@ else:
                                num_workers=CONFIG["num_cpus"],
                                collate_fn=my_collator)
 
-    model = return_model(args, CONFIG, vocab)
+model = return_model(args, CONFIG, vocab)
 
-    # Initialize loss and optimizer
-    criterion = nn.CrossEntropyLoss()
-    step_size = int(math.ceil(len(train_ds) / args.batch_size))
-    optimizer = AdamW(model.parameters(),
-                      lr=args.lr,
-                      weight_decay=args.weight_decay)
-    scheduler = None
+# Initialize loss and optimizer
+criterion = nn.CrossEntropyLoss()
+step_size = int(math.ceil(len(train_ds) / args.batch_size))
+optimizer = AdamW(model.parameters(),
+                    lr=args.lr,
+                    weight_decay=args.weight_decay)
+scheduler = None
 
-    # Move model and loss to GPUs
-    if args.gpus:
-        if args.gpus > 1:
-            model = nn.DataParallel(model)
+# Move model and loss to GPUs
+if args.gpus:
+    if args.gpus > 1:
+        model = nn.DataParallel(model)
 
-    model.to(DEVICE)
+model.to(DEVICE)
 
-    print('Printing Model Summary')
-    with open(os.path.join(CONFIG["SAVE_DIR"], 'model_summary'),
-              'w') as file_h:
-        print(model, file=file_h)
+print('Printing Model Summary')
+with open(os.path.join(CONFIG["SAVE_DIR"], 'model_summary'),
+            'w') as file_h:
+    print(model, file=file_h)
+
