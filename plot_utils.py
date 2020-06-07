@@ -21,3 +21,28 @@ def figure5(SAVE_DIR, lengths, string):
     plt.xlabel('Sequence Length', fontsize=14)
     plt.ylabel('Count', fontsize=14)
     plt.savefig(os.path.join(SAVE_DIR, string + '_signal_len_dist.png'))
+    
+    return
+
+    
+def plot_training(history, save_dir, title='', val=True):
+    '''Plot train/val loss and accuracy and save figures'''
+    plt.plot(history["train_loss"])
+    if val:
+        plt.plot(history["valid_loss"])
+    plt.title('Model loss: %s' % title)
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.legend(['Train', 'Test'], loc='upper left')
+    plt.savefig(save_dir + 'loss.png')
+    plt.clf()
+    plt.plot(history["train_acc"])
+    if val:
+        plt.plot(history["valid_acc"])
+    plt.title('Model accuracy: %s' % title)
+    plt.xlabel('Epoch')
+    plt.ylabel('Accuracy')
+    plt.legend(['Train', 'Test'], loc='upper left')
+    plt.savefig(os.path.join(save_dir, 'accuracy.png'))
+    
+    return
