@@ -206,24 +206,3 @@ def valid(data_iter,
     perplexity = math.exp(total_loss)
     print('loss {:5.3f} | perplexity {:3.2f}'.format(total_loss, perplexity))
     return total_loss, total_acc
-
-
-def plot_training(history, save_dir, title='', val=True):
-    '''Plot train/val loss and accuracy and save figures'''
-    plt.plot(history["train_loss"])
-    if val:
-        plt.plot(history["valid_loss"])
-    plt.title('Model loss: %s' % title)
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.legend(['Train', 'Test'], loc='upper left')
-    plt.savefig(save_dir + 'loss.png')
-    plt.clf()
-    plt.plot(history["train_acc"])
-    if val:
-        plt.plot(history["valid_acc"])
-    plt.title('Model accuracy: %s' % title)
-    plt.xlabel('Epoch')
-    plt.ylabel('Accuracy')
-    plt.legend(['Train', 'Test'], loc='upper left')
-    plt.savefig(save_dir + 'accuracy.png')
