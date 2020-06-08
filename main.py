@@ -1,6 +1,7 @@
 import math
 import os
 import sys
+import time
 from datetime import datetime
 
 import torch
@@ -17,6 +18,7 @@ from filter_utils import filter_by_labels, filter_by_signals
 from model_utils import return_model
 from plot_utils import figure5
 from rw_utils import bigram_counts_to_csv
+from train_eval import train, valid
 from utils import fix_random_seed, transform_labels
 from vocab_builder import create_vocab
 
@@ -127,3 +129,74 @@ model.to(DEVICE)
 print('Printing Model Summary')
 with open(os.path.join(CONFIG["SAVE_DIR"], 'model_summary'), 'w') as file_h:
     print(model, file=file_h)
+
+print("\nTraining on %d GPU(s) with batch_size %d for %d epochs" %
+      (args.gpus, args.batch_size, args.epochs))
+sys.stdout.flush()
+
+best_val_loss = float("inf")
+best_model = model
+history = {
+    'train_loss': [],
+    'train_acc': [],
+    'valid_loss': [],
+    'valid_acc': []
+}
+
+epoch = 0
+model_name = "%s%s.pt" % (CONFIG["SAVE_DIR"], args.model)
+
+# Run training and validation for args.epochs epochs
+lr = args.lr
+for epoch in range(1, args.epochs + 1):
+    epoch_start_time = time.time()
+    print(f'Epoch: {epoch:02}')
+    print('\tTrain: ', end='')
+    train_loss, train_acc = train(
+        train_dl,
+        model,
+        criterion,
+        list(range(args.gpus)),
+        DEVICE,
+        optimizer,
+        scheduler=scheduler,
+        seq2seq=not classify,
+        pad_idx=vocab[CONFIG["pad_token"]] if not classify else -1)
+    for param_group in optimizer.param_groups:
+        if 'lr' in param_group:
+            print(' | lr {:1.2E}'.format(param_group['lr']))
+            break
+    history['train_loss'].append(train_loss)
+    history['train_acc'].append(train_acc)
+    print('\tValid: ', end='')
+    with torch.no_grad():
+        valid_loss, valid_acc = valid(
+            valid_dl,
+            model,
+            criterion,
+            DEVICE,
+            temperature=args.temp,
+            seq2seq=not classify,
+            pad_idx=vocab[CONFIG["pad_token"]] if not classify else -1)
+    history['valid_loss'].append(valid_loss)
+    history['valid_acc'].append(valid_acc)
+
+    # Store best model so far
+    if valid_loss < best_val_loss:
+        best_model, best_val_loss = model, valid_loss
+        model_to_save = best_model.module if hasattr(best_model,
+                                                     'module') else best_model
+        torch.save(model_to_save, model_name)
+
+    # Additional Info when using cuda
+    if DEVICE.type == 'cuda':
+        print('Memory Usage:')
+        for i in range(args.gpus):
+            max_alloc = round(torch.cuda.max_memory_allocated(i) / 1024**3, 1)
+            cached = round(torch.cuda.memory_cached(i) / 1024**3, 1)
+            print(f'GPU: {i} Allocated: {max_alloc}G Cached: {cached}G')
+
+    # if epoch > 10 and valid_loss > max(history['valid_loss'][-3:]):
+    #     lr /= 2.
+    #     for param_group in optimizer.param_groups:
+    #         param_group['lr'] = lr

@@ -25,7 +25,7 @@ def bigram_counts_to_csv(CONFIG, labels, data_str=None):
     if not data_str:
         print('No file name specified.')
     elif data_str == 'mixed':
-        file_name = '_'.join(['train_test', 'count']) + '.csv'
+        file_name = '_'.join(['train_test', 'bigram', 'count']) + '.csv'
     else:
         file_name = '_'.join([data_str, 'count']) + '.csv'
 

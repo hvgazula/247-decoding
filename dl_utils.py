@@ -14,7 +14,10 @@ class Brain2TextDataset(Dataset):
             labels (list): english examples.
         """
         assert (len(signals) == len(labels))
-        self.examples = sorted(list(zip(signals, labels)), key=self.getKey)
+        example_list = sorted(list(zip(signals, labels)), key=self.getKey)
+        example_list = [(torch.from_numpy(k[0]).float(),
+                         torch.tensor(k[1]).long()) for k in example_list]
+        self.examples = example_list
 
     def getKey(self, item):
         return len(item[0])
