@@ -16,7 +16,7 @@ from config import build_config
 from dl_utils import Brain2TextDataset, MyCollator
 from filter_utils import filter_by_labels, filter_by_signals
 from model_utils import return_model
-from plot_utils import figure5
+from plot_utils import figure5, plot_training
 from rw_utils import bigram_counts_to_csv
 from train_eval import train, valid
 from utils import fix_random_seed, transform_labels
@@ -146,7 +146,6 @@ history = {
 epoch = 0
 model_name = "%s%s.pt" % (CONFIG["SAVE_DIR"], args.model)
 
-# Run training and validation for args.epochs epochs
 lr = args.lr
 for epoch in range(1, args.epochs + 1):
     epoch_start_time = time.time()
@@ -196,7 +195,14 @@ for epoch in range(1, args.epochs + 1):
             cached = round(torch.cuda.memory_cached(i) / 1024**3, 1)
             print(f'GPU: {i} Allocated: {max_alloc}G Cached: {cached}G')
 
-    # if epoch > 10 and valid_loss > max(history['valid_loss'][-3:]):
-    #     lr /= 2.
-    #     for param_group in optimizer.param_groups:
-    #         param_group['lr'] = lr
+print('Printing Loss Curves')
+plot_training(history,
+              CONFIG["SAVE_DIR"],
+              title="%s_lr%s" % (args.model, args.lr))
+
+print("Evaluating predictions on test set")
+best_model = torch.load(model_name)
+if args.gpus:
+    best_model.to(DEVICE)
+
+softmax = nn.Softmax(dim=1)
