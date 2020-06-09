@@ -11,7 +11,8 @@ from sklearn.model_selection import train_test_split
 from transformers import AdamW
 
 from arg_parser import arg_parser
-from build_matrices import build_design_matrices_seq2seq
+from build_matrices import (build_design_matrices_classification,
+                            build_design_matrices_seq2seq)
 from config import build_config
 from dl_utils import Brain2TextDataset, MyCollator
 from filter_utils import filter_by_labels, filter_by_signals
@@ -28,7 +29,7 @@ results_str = now.strftime("%Y-%m-%d-%H:%M")
 
 args = arg_parser()
 CONFIG = build_config(args, results_str)
-sys.stdout = open(CONFIG["LOG_FILE"], 'w')
+# sys.stdout = open(CONFIG["LOG_FILE"], 'w')
 
 print(f'Start Time: {date_str}')
 print(f'Setting Random seed: {CONFIG["seed"]}')
@@ -51,7 +52,42 @@ classify = False if (args.model in MODEL_OBJ
                      and MODEL_OBJ[args.model] == "seq2seq") else True
 
 if classify:
-    pass
+    print('Pre-filtering Count: ')
+    signals, labels = build_design_matrices_classification(
+        CONFIG, delimiter=" ", aug_shift_ms=[-1000, -500])
+
+    print('Plotting Distribution of Signal Lengths')
+    seq_lengths = [len(signal) for signal in signals]
+    figure5(CONFIG["SAVE_DIR"], seq_lengths, 'all')
+
+    signals, labels = filter_by_signals(signals, labels, 75)
+    assert len(signals) == len(labels), "Size Mismatch: Filter 1"
+    print(f'Number of Examples (Post Signal Length Cutoff): {len(signals)}')
+    signals, labels = filter_by_labels(signals, labels, 10, classify=classify)
+    assert len(signals) == len(labels), "Size Mismatch: Filter 2"
+    print(f'Number of Examples (Post Class Size Cutoff): {len(signals)}')
+
+    bigram_counts_to_csv(CONFIG, labels, classify=classify, data_str='mixed')
+
+    X_train, X_test, y_train, y_test = train_test_split(signals,
+                                                        labels,
+                                                        stratify=labels,
+                                                        test_size=0.30,
+                                                        random_state=args.seed)
+
+    bigram_counts_to_csv(CONFIG, y_train, classify=classify, data_str='train')
+    bigram_counts_to_csv(CONFIG, y_test, classify=classify, data_str='test')
+
+    print(f'Size of Training Set is: {len(X_train)}')
+    print(f'Size of Test Set is: {len(X_test)}')
+
+    print('Building Vocabulary')
+    word2freq, word_list, n_classes, vocab, i2w = create_vocab(CONFIG,
+                                                               y_train,
+                                                               classify=True)
+    print('Transforming Labels')
+    y_train = transform_labels(CONFIG, vocab, y_train, classify=classify)
+    y_test = transform_labels(CONFIG, vocab, y_test, classify=classify)
 else:
     print('Pre-filtering Count: ')
     signals, labels = build_design_matrices_seq2seq(CONFIG,
@@ -66,32 +102,31 @@ else:
     signals, labels = filter_by_signals(signals, labels, 75)
     assert len(signals) == len(labels), "Size Mismatch: Filter 1"
     print(f'Number of Examples (Post Signal Length Cutoff): {len(signals)}')
-    signals, labels = filter_by_labels(signals, labels, 30)
+    signals, labels = filter_by_labels(signals, labels, 5, classify=classify)
     assert len(signals) == len(labels), "Size Mismatch: Filter 2"
     print(f'Number of Examples (Post Class Size Cutoff): {len(signals)}')
 
-    bigram_counts_to_csv(CONFIG, labels, 'mixed')
+    bigram_counts_to_csv(CONFIG, labels, classify=classify, data_str='mixed')
 
     X_train, X_test, y_train, y_test = train_test_split(signals,
                                                         labels,
                                                         stratify=labels,
                                                         test_size=0.30,
                                                         random_state=args.seed)
-
-    bigram_counts_to_csv(CONFIG, y_train, 'train')
-    bigram_counts_to_csv(CONFIG, y_test, 'test')
+    print(y_train)
+    bigram_counts_to_csv(CONFIG, y_train, classify=classify, data_str='train')
+    bigram_counts_to_csv(CONFIG, y_test, classify=classify, data_str='test')
 
     print(f'Size of Training Set is: {len(X_train)}')
     print(f'Size of Test Set is: {len(X_test)}')
 
     print('Building Vocabulary')
-    word2freq, word_list, n_classes, vocab, i2w = create_vocab(CONFIG,
-                                                               y_train,
-                                                               classify=False)
+    word2freq, word_list, n_classes, vocab, i2w = create_vocab(
+        CONFIG, y_train, classify=classify)
 
     print('Transforming Labels')
-    y_train = transform_labels(CONFIG, vocab, y_train)
-    y_test = transform_labels(CONFIG, vocab, y_test)
+    y_train = transform_labels(CONFIG, vocab, y_train, classify=classify)
+    y_test = transform_labels(CONFIG, vocab, y_test, classify=classify)
 
     print('Creating Dataset Objects')
     train_ds = Brain2TextDataset(X_train, y_train)

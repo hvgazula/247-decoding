@@ -2,8 +2,8 @@ from collections import Counter
 from itertools import compress
 
 
-def filter_by_labels(signals, labels, set_min_samples):
-    label_flag = return_label_flag(labels, set_min_samples)
+def filter_by_labels(signals, labels, set_min_samples, classify=True):
+    label_flag = return_label_flag(labels, set_min_samples, classify=classify)
     signals = list(compress(signals, label_flag))
     labels = list(compress(labels, label_flag))
     return signals, labels
@@ -16,11 +16,11 @@ def filter_by_signals(signals, labels, set_max_seq_length):
     return signals, labels
 
 
-def return_label_flag(labels, set_min_samples):
-    label_counter = label_counts(labels)
+def return_label_flag(labels, set_min_samples, classify=True):
+    label_counter = label_counts(labels, classify=classify)
     select_labels = [
-        list(label) for label, count in label_counter.items()
-        if count >= set_min_samples
+        label if classify else list(label)
+        for label, count in label_counter.items() if count >= set_min_samples
     ]
     label_flag = [label in select_labels for label in labels]
     return label_flag
@@ -34,5 +34,8 @@ def return_signal_flag(signals, set_max_seq_length):
     return signal_flag
 
 
-def label_counts(labels):
-    return Counter([tuple(label) for label in labels])
+def label_counts(labels, classify=True):
+    if classify:
+        return Counter(labels)
+    else:
+        return Counter([tuple(label) for label in labels])

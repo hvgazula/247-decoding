@@ -15,17 +15,22 @@ def format_dataframe(df):
     return df
 
 
-def bigram_counts_to_csv(CONFIG, labels, data_str=None):
-    label_counter = label_counts(labels)
+def bigram_counts_to_csv(CONFIG, labels, classify=True, data_str=None):
+    label_counter = label_counts(labels, classify=classify)
 
-    df = pd.Series(label_counter).rename_axis(['word_1', 'word_2'
-                                               ]).reset_index(name='Count')
+    col_size = 1 if classify else len(list(label_counter.keys())[0])
+
+    col_names = [
+        '_'.join(['word', str(num)]) for num in range(1, col_size + 1)
+    ]
+    df = pd.Series(label_counter).rename_axis(
+        col_names).sort_index().reset_index(name='Count')
     df = format_dataframe(df)
 
     if not data_str:
         print('No file name specified.')
     elif data_str == 'mixed':
-        file_name = '_'.join(['train_test', 'bigram', 'count']) + '.csv'
+        file_name = '_'.join(['train_test', 'gram', 'count']) + '.csv'
     else:
         file_name = '_'.join([data_str, 'count']) + '.csv'
 

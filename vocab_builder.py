@@ -1,4 +1,5 @@
 from collections import Counter, OrderedDict
+from itertools import chain
 
 from rw_utils import save_word_counter
 
@@ -7,9 +8,8 @@ def create_vocab(CONFIG, y_train, classify=True):
     word_freq = Counter()
     min_freq = CONFIG["vocab_min_freq"]
 
-    for sample in y_train:
-        word_freq.update(sample)
-
+    word_freq.update(y_train if classify else chain.from_iterable(y_train))
+    print(word_freq)
     tokens_to_add = [
         CONFIG["begin_token"], CONFIG["end_token"], CONFIG["oov_token"],
         CONFIG["pad_token"]

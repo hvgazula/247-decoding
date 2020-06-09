@@ -161,15 +161,30 @@ def remove_duplicates(grams):
     return list(df.to_records(index=False))
 
 
-def transform_labels(CONFIG, vocabulary, label_list):
-    start_tok = CONFIG["begin_token"]
-    stop_tok = CONFIG["end_token"]
+def transform_labels(CONFIG, vocabulary, label_list, classify=True):
+    print(label_list)
+    if classify:
+        transformed_label_list = [[vocabulary[x]] for x in label_list]
+    else:
+        start_tok = CONFIG["begin_token"]
+        stop_tok = CONFIG["end_token"]
 
-    transformed_label_list = []
-    for word_pair in label_list:
-        word_pair = [vocabulary[x] for x in word_pair]
-        word_pair.insert(0, vocabulary[start_tok])  # Add start token
-        word_pair.append(vocabulary[stop_tok])  # Add end token
-        transformed_label_list.append(word_pair)
+        transformed_label_list = []
+        for word_pair in label_list:
+            word_pair = [vocabulary[x] for x in word_pair]
+            word_pair.insert(0, vocabulary[start_tok])  # Add start token
+            word_pair.append(vocabulary[stop_tok])  # Add end token
+            transformed_label_list.append(word_pair)
 
     return transformed_label_list
+
+
+def generate_unigrams(examples):
+    my_grams = []
+    for example in examples:
+        if len(example[0]) > 1:
+            continue
+        if not example[1]:
+            continue
+        my_grams.append((example[0][0], *example[1:]))
+    return my_grams
