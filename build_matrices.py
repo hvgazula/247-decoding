@@ -3,8 +3,8 @@ import glob
 import numpy as np
 
 from electrode_utils import return_electrode_array
+from gram_utils import generate_bigrams, generate_unigrams, remove_duplicates
 from utils import (calculate_windows_params, convert_ms_to_fs,
-                   generate_unigrams, generate_wordpairs, remove_duplicates,
                    return_conversations, return_examples, test_for_bad_window)
 
 
@@ -54,7 +54,7 @@ def build_design_matrices_seq2seq(CONFIG,
 
         examples = return_examples(datum_fn, delimiter, exclude_words,
                                    CONFIG["vocabulary"])
-        bigrams = generate_wordpairs(examples)
+        bigrams = generate_bigrams(examples)
 
         if not bigrams:
             print(f'Bad Conversation: {conversation}')

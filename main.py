@@ -16,11 +16,12 @@ from build_matrices import (build_design_matrices_classification,
 from config import build_config
 from dl_utils import Brain2TextDataset, MyCollator
 from filter_utils import filter_by_labels, filter_by_signals
+from gram_utils import transform_labels
 from model_utils import return_model
 from plot_utils import figure5, plot_training
 from rw_utils import bigram_counts_to_csv
 from train_eval import train, valid
-from utils import fix_random_seed, transform_labels
+from utils import fix_random_seed
 from vocab_builder import create_vocab
 
 now = datetime.now()
