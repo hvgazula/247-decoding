@@ -15,7 +15,8 @@ def format_dataframe(df):
     return df
 
 
-def bigram_counts_to_csv(CONFIG, labels, classify=True, data_str=None):
+def bigram_counts_to_csv(CONFIG, labels, data_str=None):
+    classify = CONFIG["classify"]
     label_counter = label_counts(labels, classify=classify)
 
     col_size = 1 if classify else len(list(label_counter.keys())[0])
@@ -46,3 +47,10 @@ def save_word_counter(CONFIG, word2freq):
                                            ]).reset_index(name='Frequency')
     df = format_dataframe(df)
     df.to_csv(os.path.join(CONFIG["SAVE_DIR"], 'word2freq.csv'), index=False)
+
+
+def print_model(CONFIG, model):
+    print('Printing Model Summary')
+    with open(os.path.join(CONFIG["SAVE_DIR"], 'model_summary'),
+              'w') as file_h:
+        print(model, file=file_h)

@@ -19,7 +19,7 @@ from filter_utils import filter_by_labels, filter_by_signals
 from gram_utils import transform_labels
 from model_utils import return_model
 from plot_utils import figure5, plot_training
-from rw_utils import bigram_counts_to_csv
+from rw_utils import bigram_counts_to_csv, print_model
 from train_eval import train, valid
 from utils import fix_random_seed
 from vocab_builder import create_vocab
@@ -41,6 +41,7 @@ DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 args.gpus = min(args.gpus, torch.cuda.device_count())
 
 classify = CONFIG['classify']
+
 if classify:
     print('Pre-filtering Count: ')
     signals, labels = build_design_matrices_classification(
@@ -53,11 +54,12 @@ if classify:
     signals, labels = filter_by_signals(signals, labels, 75)
     assert len(signals) == len(labels), "Size Mismatch: Filter 1"
     print(f'Number of Examples (Post Signal Length Cutoff): {len(signals)}')
+
     signals, labels = filter_by_labels(signals, labels, 10, classify=classify)
     assert len(signals) == len(labels), "Size Mismatch: Filter 2"
     print(f'Number of Examples (Post Class Size Cutoff): {len(signals)}')
 
-    bigram_counts_to_csv(CONFIG, labels, classify=classify, data_str='mixed')
+    bigram_counts_to_csv(CONFIG, labels, data_str='mixed')
 
     X_train, X_test, y_train, y_test = train_test_split(signals,
                                                         labels,
@@ -65,19 +67,17 @@ if classify:
                                                         test_size=0.30,
                                                         random_state=args.seed)
 
-    bigram_counts_to_csv(CONFIG, y_train, classify=classify, data_str='train')
-    bigram_counts_to_csv(CONFIG, y_test, classify=classify, data_str='test')
+    bigram_counts_to_csv(CONFIG, y_train, data_str='train')
+    bigram_counts_to_csv(CONFIG, y_test, data_str='test')
 
     print(f'Size of Training Set is: {len(X_train)}')
     print(f'Size of Test Set is: {len(X_test)}')
 
     print('Building Vocabulary')
-    word2freq, word_list, n_classes, vocab, i2w = create_vocab(CONFIG,
-                                                               y_train,
-                                                               classify=True)
+    word2freq, word_list, n_classes, vocab, i2w = create_vocab(CONFIG, y_train)
     print('Transforming Labels')
-    y_train = transform_labels(CONFIG, vocab, y_train, classify=classify)
-    y_test = transform_labels(CONFIG, vocab, y_test, classify=classify)
+    y_train = transform_labels(CONFIG, vocab, y_train)
+    y_test = transform_labels(CONFIG, vocab, y_test)
 
     print('Creating Dataset Objects')
     train_ds = Brain2TextDataset(X_train, y_train)
@@ -96,11 +96,12 @@ else:
     signals, labels = filter_by_signals(signals, labels, 75)
     assert len(signals) == len(labels), "Size Mismatch: Filter 1"
     print(f'Number of Examples (Post Signal Length Cutoff): {len(signals)}')
+
     signals, labels = filter_by_labels(signals, labels, 5, classify=classify)
     assert len(signals) == len(labels), "Size Mismatch: Filter 2"
     print(f'Number of Examples (Post Class Size Cutoff): {len(signals)}')
 
-    bigram_counts_to_csv(CONFIG, labels, classify=classify, data_str='mixed')
+    bigram_counts_to_csv(CONFIG, labels, data_str='mixed')
 
     X_train, X_test, y_train, y_test = train_test_split(signals,
                                                         labels,
@@ -108,35 +109,35 @@ else:
                                                         test_size=0.30,
                                                         random_state=args.seed)
     print(y_train)
-    bigram_counts_to_csv(CONFIG, y_train, classify=classify, data_str='train')
-    bigram_counts_to_csv(CONFIG, y_test, classify=classify, data_str='test')
+    bigram_counts_to_csv(CONFIG, y_train, data_str='train')
+    bigram_counts_to_csv(CONFIG, y_test, data_str='test')
 
     print(f'Size of Training Set is: {len(X_train)}')
     print(f'Size of Test Set is: {len(X_test)}')
 
     print('Building Vocabulary')
-    word2freq, word_list, n_classes, vocab, i2w = create_vocab(
-        CONFIG, y_train, classify=classify)
+    word2freq, word_list, n_classes, vocab, i2w = create_vocab(CONFIG, y_train)
 
     print('Transforming Labels')
-    y_train = transform_labels(CONFIG, vocab, y_train, classify=classify)
-    y_test = transform_labels(CONFIG, vocab, y_test, classify=classify)
+    y_train = transform_labels(CONFIG, vocab, y_train)
+    y_test = transform_labels(CONFIG, vocab, y_test)
 
     print('Creating Dataset Objects')
     train_ds = Brain2TextDataset(X_train, y_train)
     valid_ds = Brain2TextDataset(X_test, y_test)
 
 print('Creating DataLoader Objects')
-my_collator = MyCollator(CONFIG, vocab)
+my_collator = None if classify else MyCollator(CONFIG, vocab)
+
 train_dl = data.DataLoader(train_ds,
                            batch_size=args.batch_size,
                            shuffle=True,
                            num_workers=CONFIG["num_cpus"],
-                           collate_fn=None if classify else my_collator)
+                           collate_fn=my_collator)
 valid_dl = data.DataLoader(valid_ds,
                            batch_size=args.batch_size,
                            num_workers=CONFIG["num_cpus"],
-                           collate_fn=None if classify else my_collator)
+                           collate_fn=my_collator)
 
 model = return_model(args, CONFIG, vocab)
 
@@ -155,9 +156,7 @@ if args.gpus:
 
 model.to(DEVICE)
 
-print('Printing Model Summary')
-with open(os.path.join(CONFIG["SAVE_DIR"], 'model_summary'), 'w') as file_h:
-    print(model, file=file_h)
+print_model(CONFIG, model)
 
 print("\nTraining on %d GPU(s) with batch_size %d for %d epochs" %
       (args.gpus, args.batch_size, args.epochs))

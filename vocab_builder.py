@@ -4,7 +4,9 @@ from itertools import chain
 from rw_utils import save_word_counter
 
 
-def create_vocab(CONFIG, y_train, classify=True):
+def create_vocab(CONFIG, y_train):
+    classify = CONFIG["classify"]
+
     word_freq = Counter()
     min_freq = CONFIG["vocab_min_freq"]
 
