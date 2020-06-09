@@ -98,6 +98,7 @@ class ConvNet10(nn.Module):
         self.fc1 = nn.Linear(256, num_classes)
 
     def forward(self, x):
+        x = x.unsqueeze(1)
         x = self.bn1(torch.relu(self.conv1(x)))
         x = self.bn2(torch.relu(self.conv2(x)))
         x = self.bn3(torch.relu(self.conv3(x)))
