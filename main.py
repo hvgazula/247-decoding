@@ -36,22 +36,11 @@ print(f'Start Time: {date_str}')
 print(f'Setting Random seed: {CONFIG["seed"]}')
 fix_random_seed(CONFIG)
 
-# Model objectives
-MODEL_OBJ = {
-    "ConvNet10": "classifier",
-    "PITOM": "classifier",
-    "MeNTALmini": "classifier",
-    "MeNTAL": "seq2seq"
-}
-
 # GPUs
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 args.gpus = min(args.gpus, torch.cuda.device_count())
 
-args.model = args.model.split("_")[0]
-classify = False if (args.model in MODEL_OBJ
-                     and MODEL_OBJ[args.model] == "seq2seq") else True
-
+classify = CONFIG['classify']
 if classify:
     print('Pre-filtering Count: ')
     signals, labels = build_design_matrices_classification(
@@ -89,7 +78,10 @@ if classify:
     print('Transforming Labels')
     y_train = transform_labels(CONFIG, vocab, y_train, classify=classify)
     y_test = transform_labels(CONFIG, vocab, y_test, classify=classify)
-    sys.exit(0)
+
+    print('Creating Dataset Objects')
+    train_ds = Brain2TextDataset(X_train, y_train)
+    valid_ds = Brain2TextDataset(X_test, y_test)
 else:
     print('Pre-filtering Count: ')
     signals, labels = build_design_matrices_seq2seq(CONFIG,
@@ -134,17 +126,17 @@ else:
     train_ds = Brain2TextDataset(X_train, y_train)
     valid_ds = Brain2TextDataset(X_test, y_test)
 
-    print('Creating DataLoader Objects')
-    my_collator = MyCollator(CONFIG, vocab)
-    train_dl = data.DataLoader(train_ds,
-                               batch_size=args.batch_size,
-                               shuffle=True,
-                               num_workers=CONFIG["num_cpus"],
-                               collate_fn=my_collator)
-    valid_dl = data.DataLoader(valid_ds,
-                               batch_size=args.batch_size,
-                               num_workers=CONFIG["num_cpus"],
-                               collate_fn=my_collator)
+print('Creating DataLoader Objects')
+my_collator = MyCollator(CONFIG, vocab)
+train_dl = data.DataLoader(train_ds,
+                           batch_size=args.batch_size,
+                           shuffle=True,
+                           num_workers=CONFIG["num_cpus"],
+                           collate_fn=None if classify else my_collator)
+valid_dl = data.DataLoader(valid_ds,
+                           batch_size=args.batch_size,
+                           num_workers=CONFIG["num_cpus"],
+                           collate_fn=None if classify else my_collator)
 
 model = return_model(args, CONFIG, vocab)
 

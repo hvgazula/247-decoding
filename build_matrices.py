@@ -20,7 +20,8 @@ def build_design_matrices_seq2seq(CONFIG,
         CONFIG ([type]): [description]
         fs (int, optional): [description]. Defaults to 512.
         delimiter (str, optional): [description]. Defaults to ','.
-        aug_shift_ms (list, optional): [description]. Defaults to [-500, -250, 250].
+        aug_shift_ms (list, optional): [description].
+        Defaults to [-500, -250, 250].
         max_num_bins ([type], optional): [description]. Defaults to None.
         remove_unks (bool, optional): [description]. Defaults to True.
 
@@ -63,7 +64,8 @@ def build_design_matrices_seq2seq(CONFIG,
 
         for bigram in bigrams:
             (seq_length, start_onset, end_onset,
-             n_bins) = (calculate_windows_params(bigram, signal_param_dict))
+             n_bins) = (calculate_windows_params(CONFIG, bigram,
+                                                 signal_param_dict))
 
             if (seq_length <= 0) or (max_num_bins and n_bins > max_num_bins):
                 continue
@@ -139,7 +141,8 @@ def build_design_matrices_classification(CONFIG,
 
         for unigram in unigrams:
             (seq_length, start_onset, end_onset,
-             n_bins) = (calculate_windows_params(unigram, signal_param_dict))
+             n_bins) = (calculate_windows_params(CONFIG, unigram,
+                                                 signal_param_dict))
 
             if (seq_length <= 0):
                 continue

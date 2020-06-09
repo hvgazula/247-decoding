@@ -81,13 +81,18 @@ def return_examples(file, delim, ex_words, vocab_str='std'):
         return list(examples)
 
 
-def calculate_windows_params(gram, param_dict):
+def calculate_windows_params(CONFIG, gram, param_dict):
     seq_length = gram[3] - gram[2]
     begin_window = gram[2] + param_dict['start_offset']
     end_window = gram[3] + param_dict['end_offset']
-    bin_size = int(
-        math.ceil((end_window - begin_window) /
-                  param_dict['bin_fs']))  # calculate number of bins
+
+    # calculate number of bins
+    if CONFIG["classify"]:
+        half_window = param_dict["half_window"]
+        bin_size = len(range(-half_window, half_window, param_dict["bin_fs"]))
+    else:
+        bin_size = int(
+            math.ceil((end_window - begin_window) / param_dict['bin_fs']))
 
     return seq_length, begin_window, end_window, bin_size
 

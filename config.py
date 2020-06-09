@@ -48,6 +48,18 @@ def build_config(args, results_str):
 
     CONFIG = return_config_dict()
 
+    # Model objectives
+    MODEL_OBJ = {
+        "ConvNet10": "classifier",
+        "PITOM": "classifier",
+        "MeNTALmini": "classifier",
+        "MeNTAL": "seq2seq"
+    }
+
+    args.model = args.model.split("_")[0]
+    classify = False if (args.model in MODEL_OBJ
+                         and MODEL_OBJ[args.model] == "seq2seq") else True
+
     # Format directory logistics
     CONV_DIRS = [
         CONFIG["data_dir"] + '/%s-conversations/' % i for i in args.subjects
@@ -64,7 +76,8 @@ def build_config(args, results_str):
     DIR_DICT = dict(CONV_DIRS=CONV_DIRS,
                     META_DIRS=META_DIRS,
                     SAVE_DIR=SAVE_DIR,
-                    LOG_FILE=LOG_FILE)
+                    LOG_FILE=LOG_FILE,
+                    classify=classify)
 
     CONFIG.update(DIR_DICT)
 

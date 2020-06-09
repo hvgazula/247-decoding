@@ -192,7 +192,7 @@ def valid(data_iter,
             total_acc += float((torch.argmax(out, dim=1) == trg).sum())
             out = F.softmax(out / temperature, dim=1)
             samples = torch.multinomial(out, n_samples)
-            pred = torch.zeros(samples.size(0)).cuda()
+            pred = torch.zeros(samples.size(0)).to(device)
             for j in range(len(pred)):
                 pred[j] = samples[j, torch.argmax(out[j, samples[j]])]
             total_sample_rank_acc += float((pred == trg).sum())
