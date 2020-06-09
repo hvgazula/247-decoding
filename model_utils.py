@@ -1,5 +1,5 @@
 import sys
-
+import os
 import torch
 
 from models import *
@@ -27,13 +27,13 @@ def return_model(args, CONFIG, vocab):
             print("Building custom model: %s" % args.model, end="")
             sys.exit(1)
     else:
-        model_name = "%s%s.pt" % (SAVE_DIR, args.model)
+        model_name = "%s%s.pt" % (CONFIG["SAVE_DIR"], args.model)
         if os.path.isfile(model_name):
             model = torch.load(model_name)
             model = model.module if hasattr(model, 'module') else model
             print("Loaded initial model: %s " % args.model)
         else:
-            print("No models found in: ", SAVE_DIR)
+            print("No models found in: ", CONFIG["SAVE_DIR"])
             sys.exit(1)
     print(" with %d trainable parameters" %
           sum([p.numel() for p in model.parameters() if p.requires_grad]))
