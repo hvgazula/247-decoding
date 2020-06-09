@@ -2,7 +2,6 @@ import pandas as pd
 
 
 def transform_labels(CONFIG, vocabulary, label_list, classify=True):
-    print(label_list)
     if classify:
         transformed_label_list = [[vocabulary[x]] for x in label_list]
     else:

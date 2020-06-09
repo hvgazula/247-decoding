@@ -89,6 +89,7 @@ if classify:
     print('Transforming Labels')
     y_train = transform_labels(CONFIG, vocab, y_train, classify=classify)
     y_test = transform_labels(CONFIG, vocab, y_test, classify=classify)
+    sys.exit(0)
 else:
     print('Pre-filtering Count: ')
     signals, labels = build_design_matrices_seq2seq(CONFIG,

@@ -9,7 +9,7 @@ def create_vocab(CONFIG, y_train, classify=True):
     min_freq = CONFIG["vocab_min_freq"]
 
     word_freq.update(y_train if classify else chain.from_iterable(y_train))
-    print(word_freq)
+
     tokens_to_add = [
         CONFIG["begin_token"], CONFIG["end_token"], CONFIG["oov_token"],
         CONFIG["pad_token"]
