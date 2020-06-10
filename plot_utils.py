@@ -21,7 +21,7 @@ def figure5(SAVE_DIR, lengths, string):
     plt.xlabel('Sequence Length', fontsize=14)
     plt.ylabel('Count', fontsize=14)
     plt.savefig(os.path.join(SAVE_DIR, string + '_signal_len_dist.png'))
-
+    plt.close()
     return
 
 

@@ -2,7 +2,8 @@ from collections import Counter
 from itertools import compress
 
 
-def filter_by_labels(signals, labels, set_min_samples, classify=True):
+def filter_by_labels(CONFIG, signals, labels, set_min_samples):
+    classify = CONFIG["classify"]
     label_flag = return_label_flag(labels, set_min_samples, classify=classify)
     signals = list(compress(signals, label_flag))
     labels = list(compress(labels, label_flag))

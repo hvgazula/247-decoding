@@ -141,12 +141,12 @@ def train(data_iter,
         count += int(out.size(0))
         batch_count += 1
     total_loss /= batch_count
-    # total_acc /= count
+    total_acc /= count
     elapsed = (time.time() - start_time) * 1000. / batch_count
     perplexity = float('inf')
     perplexity = math.exp(total_loss)
-    print('loss {:5.3f} | perplexity {:3.2f} | ms/batch {:5.2f}'.format(
-        total_loss, perplexity, elapsed),
+    print('loss {:5.3f} | acc {:5.3f} | perplexity {:3.2f} | ms/batch {:5.2f}'.
+          format(total_loss, total_acc, perplexity, elapsed),
           end='')
     return total_loss, total_acc
 
@@ -199,9 +199,10 @@ def valid(data_iter,
         count += int(out.size(0))
         batch_count += 1
     total_loss /= batch_count
-    # total_acc /= count
-    # total_sample_rank_acc /= count
+    total_acc /= count
+    total_sample_rank_acc /= count
     perplexity = float('inf')
     perplexity = math.exp(total_loss)
-    print('loss {:5.3f} | perplexity {:3.2f}'.format(total_loss, perplexity))
+    print('loss {:5.3f} | acc {:5.3f} | perplexity {:3.2f}'.format(
+        total_loss, total_acc, perplexity))
     return total_loss, total_acc
