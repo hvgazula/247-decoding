@@ -23,7 +23,7 @@ from model_utils import return_model
 from plot_utils import figure5, plot_training
 from rw_utils import bigram_counts_to_csv, print_model
 from seq_eval_utils import (bigram_freq_excel, create_excel_preds,
-                            translate_neural_signal)
+                            translate_neural_signal, word_wise_roc)
 from train_eval import train, valid
 from utils import fix_random_seed, print_cuda_usage
 from vocab_builder import create_vocab
@@ -202,47 +202,21 @@ else:
                             index=False)
 
     train_freqs = {vocab[key]: val for key, val in word2freq.items()}
-
-    do_plot = True
     remove_tokens = [
         CONFIG["begin_token"], CONFIG["end_token"], CONFIG["oov_token"],
         CONFIG["pad_token"]
     ]
-    word_end_idex = []
 
-    # doing it for word1
-    true = np.array(valid_preds_df['word1'].replace(vocab).tolist())
-    labels = np.zeros((true.size, true.max() + 1))
-    labels[np.arange(true.size), true] = 1
-    predictions = valid_all_preds.numpy()[:, n_classes * 0:n_classes * 1]
-    evaluate_roc(predictions,
-                 labels,
-                 i2w,
-                 train_freqs,
-                 CONFIG["SAVE_DIR"],
-                 do_plot,
-                 given_thresholds=None,
-                 title='word1',
-                 suffix='word1',
-                 min_train=10,
-                 tokens_to_remove=remove_tokens)
-
-    # doing it for word2
-    true = np.array(valid_preds_df['word2'].replace(vocab).tolist())
-    labels = np.zeros((true.size, true.max() + 1))
-    labels[np.arange(true.size), true] = 1
-    predictions = valid_all_preds.numpy()[:, n_classes * 1:n_classes * 2]
-    evaluate_roc(predictions,
-                 labels,
-                 i2w,
-                 train_freqs,
-                 CONFIG["SAVE_DIR"],
-                 do_plot,
-                 given_thresholds=None,
-                 title='word2',
-                 suffix='word2',
-                 min_train=10,
-                 tokens_to_remove=remove_tokens)
+    for string in ['word1', 'word2']:
+        print(f'Postprocessing for {string}')
+        word_wise_roc(CONFIG,
+                      vocab,
+                      valid_preds_df,
+                      valid_all_preds,
+                      train_freqs,
+                      remove_tokens,
+                      i2w,
+                      string=string)
 
     # Post-processing for bigrams as classes
     # EXAMPLE
@@ -311,7 +285,7 @@ else:
                  bigram_i2w,
                  bigram_train_freqs,
                  CONFIG["SAVE_DIR"],
-                 do_plot,
+                 do_plot=True,
                  given_thresholds=None,
                  title='bigram',
                  suffix='bigram',

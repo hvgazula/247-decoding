@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
+import sys
+from eval_utils import evaluate_roc
 
 
 def translate_neural_signal(CONFIG, vocab, device, model, data_iterator):
@@ -125,8 +127,8 @@ def create_excel_preds(targets, top_predictions, i2w):
     ]
     df[pred_col_names] = pd.DataFrame(top_predictions.numpy()[:, :20])
 
-    df = apply_rank(df, str='word1')
-    df = apply_rank(df, str='word2')
+    df = apply_rank(df, string='word1')
+    df = apply_rank(df, string='word2')
 
     df[pred_col_names] = df[pred_col_names].replace(i2w)
     df['word1'] = df['word1'].replace(i2w)
@@ -170,3 +172,37 @@ def bigram_freq_excel(CONFIG, data, word2freq, i2w, filename, ref_data=None):
     print(set(word2freq.keys()) - set(valid_df['word2'].unique()))
 
     return valid_df
+
+
+def word_wise_roc(CONFIG,
+                  vocab,
+                  valid_preds_df,
+                  valid_all_preds,
+                  train_freqs,
+                  remove_tokens,
+                  i2w,
+                  string=None):
+    n_classes = len(vocab)
+
+    if string == 'word1':
+        col_range = range(n_classes * 0, n_classes * 1)
+    elif string == 'word2':
+        col_range = range(n_classes * 1, n_classes * 2)
+    else:
+        sys.exit('Wrong Word')
+
+    true = np.array(valid_preds_df[string].replace(vocab).tolist())
+    labels = np.zeros((true.size, true.max() + 1))
+    labels[np.arange(true.size), true] = 1
+    predictions = valid_all_preds.numpy()[:, col_range]
+    evaluate_roc(predictions,
+                 labels,
+                 i2w,
+                 train_freqs,
+                 CONFIG["SAVE_DIR"],
+                 do_plot=True,
+                 given_thresholds=None,
+                 title=string,
+                 suffix=string,
+                 min_train=10,
+                 tokens_to_remove=remove_tokens)

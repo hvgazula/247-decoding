@@ -24,7 +24,7 @@ def evaluate_roc(predictions,
                  i2w,
                  train_freqs,
                  save_dir,
-                 do_plot,
+                 do_plot=True,
                  given_thresholds=None,
                  title='',
                  suffix='',
@@ -33,7 +33,6 @@ def evaluate_roc(predictions,
     assert (predictions.shape == labels.shape)
     lines, scores, word_freqs = [], [], []
     n_examples, n_classes = predictions.shape
-    print(n_examples, n_classes)
     thresholds = np.full(n_classes, np.nan)
     rocs, fprs, tprs = {}, [], []
 
