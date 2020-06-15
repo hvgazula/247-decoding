@@ -1,8 +1,12 @@
+import itertools
 import math
+import os
 import sys
 import time
 from datetime import datetime
 
+import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.utils.data as data
@@ -13,11 +17,14 @@ from arg_parser import arg_parser
 from build_matrices import build_design_matrices
 from config import build_config
 from dl_utils import Brain2TextDataset, MyCollator
+from eval_utils import evaluate_roc
 from filter_utils import filter_by_labels, filter_by_signals
 from gram_utils import transform_labels
 from model_utils import return_model
 from plot_utils import figure5, plot_training
 from rw_utils import bigram_counts_to_csv, print_model
+from seq_eval_utils import (bigram_freq_excel, create_excel_preds,
+                            translate_neural_signal)
 from train_eval import train, valid
 from utils import fix_random_seed
 from vocab_builder import create_vocab
@@ -184,8 +191,146 @@ plot_training(history,
               title="%s_lr%s" % (args.model, args.lr))
 
 print("Evaluating predictions on test set")
+# Load best model
 best_model = torch.load(model_name)
-if args.gpus:
-    best_model.to(DEVICE)
 
-softmax = nn.Softmax(dim=1)
+if classify:
+    print('Need to work on this part of the code')
+else:
+    vocab_len = len(vocab)
+
+    (valid_all_trg_y, valid_topk_preds, valid_topk_preds_scores,
+     valid_all_preds) = translate_neural_signal(CONFIG, args, vocab, DEVICE,
+                                                best_model, valid_dl,
+                                                vocab_len)
+    (train_all_trg_y, train_topk_preds, train_topk_preds_scores,
+     train_all_preds) = translate_neural_signal(CONFIG, args, vocab, DEVICE,
+                                                best_model, train_dl,
+                                                vocab_len)
+
+    valid_preds_df = create_excel_preds(valid_all_trg_y, valid_topk_preds, i2w)
+    train_preds_df = create_excel_preds(train_all_trg_y, train_topk_preds, i2w)
+
+    valid_preds_df.to_excel(os.path.join(CONFIG["SAVE_DIR"], 'valid_set.xlsx'),
+                            index=False)
+    train_preds_df.to_excel(os.path.join(CONFIG["SAVE_DIR"], 'train_set.xlsx'),
+                            index=False)
+
+    train_freqs = {vocab[key]: val for key, val in word2freq.items()}
+    save_dir = CONFIG["SAVE_DIR"]
+    do_plot = True
+    remove_tokens = [
+        CONFIG["begin_token"], CONFIG["end_token"], CONFIG["oov_token"],
+        CONFIG["pad_token"]
+    ]
+    word_end_idex = []
+
+    # doing it for word1
+    true = np.array(valid_preds_df['word1'].replace(vocab).tolist())
+    labels = np.zeros((true.size, true.max() + 1))
+    labels[np.arange(true.size), true] = 1
+    predictions = valid_all_preds.numpy()[:, n_classes * 0:n_classes * 1]
+    evaluate_roc(predictions,
+                 labels,
+                 i2w,
+                 train_freqs,
+                 save_dir,
+                 do_plot,
+                 given_thresholds=None,
+                 title='word1',
+                 suffix='word1',
+                 min_train=10,
+                 tokens_to_remove=remove_tokens)
+
+    # doing it for word2
+    true = np.array(valid_preds_df['word2'].replace(vocab).tolist())
+    labels = np.zeros((true.size, true.max() + 1))
+    labels[np.arange(true.size), true] = 1
+    predictions = valid_all_preds.numpy()[:, n_classes * 1:n_classes * 2]
+    evaluate_roc(predictions,
+                 labels,
+                 i2w,
+                 train_freqs,
+                 save_dir,
+                 do_plot,
+                 given_thresholds=None,
+                 title='word2',
+                 suffix='word2',
+                 min_train=10,
+                 tokens_to_remove=remove_tokens)
+
+    # Post-processing for bigrams as classes
+    # EXAMPLE
+    # a = np.array([[1,2],[3,4]])
+    # np.repeat(a, 2, axis=2)
+    # np.tile(a, (1, 2))
+    softmax = nn.Softmax(dim=1)
+
+    valid_all_preds_first = valid_all_preds[:, n_classes * 0:n_classes * 1]
+    valid_all_preds_second = valid_all_preds[:, n_classes * 1:n_classes * 2]
+
+    valid_all_preds_first_repeat = torch.repeat_interleave(
+        valid_all_preds_first, n_classes,
+        dim=1)  # this is similar to np.repeat
+    valid_all_preds_second_repeat = valid_all_preds_second.repeat(
+        (1, n_classes))  # this is similar to np.tile
+
+    valid_all_preds_bigram = valid_all_preds_first_repeat * \
+        valid_all_preds_second_repeat  # hadamard product
+    valid_all_preds_bigram = softmax(
+        valid_all_preds_bigram)  # softmax in dim=1
+
+    raw_train_df = bigram_freq_excel(CONFIG, y_train, word2freq, i2w,
+                                     "625_bi-gram-freq-train.xlsx")
+    raw_valid_df = bigram_freq_excel(CONFIG,
+                                     y_test,
+                                     word2freq,
+                                     i2w,
+                                     "625_bi-gram-freq-valid.xlsx",
+                                     ref_data=raw_train_df)
+
+    abc = [p for p in itertools.product(vocab.keys(), repeat=2)]
+    bigram_i2w = {i: '_'.join(words) for i, words in enumerate(abc)}
+    new_df = pd.DataFrame(abc, columns=['word1', 'word2'])
+    new_df['bigram_index'] = new_df.index
+    new_valid_preds_df = pd.merge(valid_preds_df,
+                                  new_df,
+                                  how='left',
+                                  on=['word1', 'word2'])
+
+    # doing it for bigrams
+    true = np.array(new_valid_preds_df['bigram_index'])
+    labels = np.zeros((true.size, n_classes**2))
+    labels[np.arange(true.size), true] = 1
+    predictions = valid_all_preds_bigram
+
+    raw_train_df = bigram_freq_excel(CONFIG, y_train, word2freq, i2w,
+                                     "676_bi-gram-freq-train.xlsx")
+    raw_valid_df = bigram_freq_excel(CONFIG,
+                                     y_test,
+                                     word2freq,
+                                     i2w,
+                                     "676_bi-gram-freq-valid.xlsx",
+                                     ref_data=raw_train_df)
+    new_raw_train_df = pd.merge(raw_train_df,
+                                new_df,
+                                how='left',
+                                on=['word1', 'word2'])
+
+    a = new_raw_train_df[['bigram_index', 'Count']]
+    kabc = a.to_dict('records')
+    bigram_train_freqs = {item['bigram_index']: item['Count'] for item in kabc}
+
+    evaluate_roc(predictions,
+                 labels,
+                 bigram_i2w,
+                 bigram_train_freqs,
+                 save_dir,
+                 do_plot,
+                 given_thresholds=None,
+                 title='bigram',
+                 suffix='bigram',
+                 min_train=5,
+                 tokens_to_remove=remove_tokens)
+
+    print("so far so good")
