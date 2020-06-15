@@ -6,14 +6,14 @@ import torch
 import torch.nn as nn
 
 
-def translate_neural_signal(CONFIG, args, vocab, device, model, data_iterator,
+def translate_neural_signal(CONFIG, vocab, device, model, data_iterator,
                             vocab_len):
 
     data_set_len = len(data_iterator.dataset)
     valid_bi_preds = torch.zeros(data_set_len, 3, vocab_len)
     all_trg_y = torch.zeros(data_set_len, 3, dtype=torch.int32)
 
-    if args.gpus:
+    if CONFIG["gpus"]:
         model.to(device)
 
     softmax = nn.Softmax(dim=1)
@@ -29,8 +29,8 @@ def translate_neural_signal(CONFIG, args, vocab, device, model, data_iterator,
             trg_pos_mask = batch[3].to(device).squeeze()
             trg_pad_mask = batch[4].to(device)
 
-            all_trg_y[enum * args.batch_size:(enum + 1) *
-                      args.batch_size, :] = trg_y
+            all_trg_y[enum * CONFIG["batch_size"]:(enum + 1) *
+                      CONFIG["batch_size"], :] = trg_y
 
             memory = model.encode(src)
             y = torch.zeros(src.size(0), 1, len(vocab)).long().to(device)
@@ -41,14 +41,14 @@ def translate_neural_signal(CONFIG, args, vocab, device, model, data_iterator,
                 out = model.decode(memory, y,
                                    trg_pos_mask[:y.size(1), :y.size(1)],
                                    trg_pad_mask[:, :y.size(1)])[:, -1, :]
-                out = softmax(out / args.temp)
+                out = softmax(out / CONFIG["temp"])
                 bi_out[:, i, :] = out
                 temp = torch.zeros(src.size(0), vocab_len).long().to(device)
                 temp = temp.scatter_(1,
                                      torch.argmax(out, dim=1).unsqueeze(-1), 1)
                 y = torch.cat([y, temp.unsqueeze(1)], dim=1)
-            valid_bi_preds[enum * args.batch_size:(enum + 1) *
-                           args.batch_size, :, :] = bi_out
+            valid_bi_preds[enum * CONFIG["batch_size"]:(enum + 1) *
+                           CONFIG["batch_size"], :, :] = bi_out
 
         topk_preds_scores = torch.topk(valid_bi_preds, 10).values
         topk_preds = torch.topk(valid_bi_preds, 10).indices

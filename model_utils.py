@@ -6,33 +6,35 @@ import torch
 from models import *
 
 
-def return_model(args, CONFIG, vocab):
+def return_model(CONFIG, vocab):
     # Default models and parameters
     DEFAULT_MODELS = {
         "ConvNet10": (len(vocab), ),
-        "PITOM": (len(vocab), sum(args.max_electrodes)),
+        "PITOM": (len(vocab), sum(CONFIG["max_electrodes"])),
         "MeNTALmini":
-        (sum(args.max_electrodes), len(vocab), args.tf_dmodel, args.tf_nhead,
-         args.tf_nlayer, args.tf_dff, args.tf_dropout),
-        "MeNTAL": (sum(args.max_electrodes), len(vocab), args.tf_dmodel,
-                   args.tf_nhead, args.tf_nlayer, args.tf_dff, args.tf_dropout)
+        (sum(CONFIG["max_electrodes"]), len(vocab), CONFIG["tf_dmodel"],
+         CONFIG["tf_nhead"], CONFIG["tf_nlayer"], CONFIG["tf_dff"],
+         CONFIG["tf_dropout"]),
+        "MeNTAL": (sum(CONFIG["max_electrodes"]), len(vocab),
+                   CONFIG["tf_dmodel"], CONFIG["tf_nhead"],
+                   CONFIG["tf_nlayer"], CONFIG["tf_dff"], CONFIG["tf_dropout"])
     }
 
     # Create model
-    if args.init_model is None:
-        if args.model in DEFAULT_MODELS:
-            print("Building default model: %s" % args.model, end="")
-            model_class = globals()[args.model]
-            model = model_class(*(DEFAULT_MODELS[args.model]))
+    if CONFIG["init_model"] is None:
+        if CONFIG["model"] in DEFAULT_MODELS:
+            print("Building default model: %s" % CONFIG["model"], end="")
+            model_class = globals()[CONFIG["model"]]
+            model = model_class(*(DEFAULT_MODELS[CONFIG["model"]]))
         else:
-            print("Building custom model: %s" % args.model, end="")
+            print("Building custom model: %s" % CONFIG["model"], end="")
             sys.exit(1)
     else:
-        model_name = "%s%s.pt" % (CONFIG["SAVE_DIR"], args.model)
+        model_name = "%s%s.pt" % (CONFIG["SAVE_DIR"], CONFIG["model"])
         if os.path.isfile(model_name):
             model = torch.load(model_name)
             model = model.module if hasattr(model, 'module') else model
-            print("Loaded initial model: %s " % args.model)
+            print("Loaded initial model: %s " % CONFIG["model"])
         else:
             print("No models found in: ", CONFIG["SAVE_DIR"])
             sys.exit(1)

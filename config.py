@@ -1,6 +1,8 @@
 import json
 import os
 
+import torch
+
 
 def return_config_dict():
     '''
@@ -48,6 +50,9 @@ def build_config(args, results_str):
 
     CONFIG = return_config_dict()
 
+    # GPUs
+    gpus = min(args.gpus, torch.cuda.device_count())
+
     # Model objectives
     MODEL_OBJ = {
         "ConvNet10": "classifier",
@@ -77,7 +82,8 @@ def build_config(args, results_str):
                     META_DIRS=META_DIRS,
                     SAVE_DIR=SAVE_DIR,
                     LOG_FILE=LOG_FILE,
-                    classify=classify)
+                    classify=classify,
+                    gpus=gpus)
 
     CONFIG.update(DIR_DICT)
 

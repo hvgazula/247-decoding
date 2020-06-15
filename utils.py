@@ -134,3 +134,11 @@ def test_for_bad_window(start, stop, shape, window):
     # if there are not enough frames in the window
     return (start < 0 or start > shape[0] or stop < 0 or stop > shape[0]
             or stop - start < window or stop - start < 0)
+
+
+def print_cuda_usage(CONFIG):
+    print('Memory Usage:')
+    for i in range(CONFIG["gpus"]):
+        max_alloc = round(torch.cuda.max_memory_allocated(i) / 1024**3, 1)
+        cached = round(torch.cuda.memory_cached(i) / 1024**3, 1)
+        print(f'GPU: {i} Allocated: {max_alloc}G Cached: {cached}G')

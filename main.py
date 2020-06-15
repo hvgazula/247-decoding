@@ -26,7 +26,7 @@ from rw_utils import bigram_counts_to_csv, print_model
 from seq_eval_utils import (bigram_freq_excel, create_excel_preds,
                             translate_neural_signal)
 from train_eval import train, valid
-from utils import fix_random_seed
+from utils import fix_random_seed, print_cuda_usage
 from vocab_builder import create_vocab
 
 now = datetime.now()
@@ -37,13 +37,11 @@ args = arg_parser()
 CONFIG = build_config(args, results_str)
 # sys.stdout = open(CONFIG["LOG_FILE"], 'w')
 
+DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+print(DEVICE, type(DEVICE))
 print(f'Start Time: {date_str}')
 print(f'Setting Random seed: {CONFIG["seed"]}')
 fix_random_seed(CONFIG)
-
-# GPUs
-DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-args.gpus = min(args.gpus, torch.cuda.device_count())
 
 classify = CONFIG['classify']
 
@@ -66,11 +64,12 @@ print(f'Number of Examples (Post Class Size Cutoff): {len(signals)}')
 
 bigram_counts_to_csv(CONFIG, labels, data_str='mixed')
 
-X_train, X_test, y_train, y_test = train_test_split(signals,
-                                                    labels,
-                                                    stratify=labels,
-                                                    test_size=0.30,
-                                                    random_state=args.seed)
+X_train, X_test, y_train, y_test = train_test_split(
+    signals,
+    labels,
+    stratify=labels,
+    test_size=0.30,
+    random_state=CONFIG["seed"])
 
 bigram_counts_to_csv(CONFIG, y_train, data_str='train')
 bigram_counts_to_csv(CONFIG, y_test, data_str='test')
@@ -93,35 +92,35 @@ print('Creating DataLoader Objects')
 my_collator = None if classify else MyCollator(CONFIG, vocab)
 
 train_dl = data.DataLoader(train_ds,
-                           batch_size=args.batch_size,
+                           batch_size=CONFIG["batch_size"],
                            shuffle=True,
                            num_workers=CONFIG["num_cpus"],
                            collate_fn=my_collator)
 valid_dl = data.DataLoader(valid_ds,
-                           batch_size=args.batch_size,
+                           batch_size=CONFIG["batch_size"],
                            num_workers=CONFIG["num_cpus"],
                            collate_fn=my_collator)
 
-model = return_model(args, CONFIG, vocab)
+model = return_model(CONFIG, vocab)
 
 # Initialize loss and optimizer
 criterion = nn.CrossEntropyLoss()
-step_size = int(math.ceil(len(train_ds) / args.batch_size))
+step_size = int(math.ceil(len(train_ds) / CONFIG["batch_size"]))
 optimizer = AdamW(model.parameters(),
-                  lr=args.lr,
-                  weight_decay=args.weight_decay)
+                  lr=CONFIG["lr"],
+                  weight_decay=CONFIG["weight_decay"])
 scheduler = None
 
 # Move model and loss to GPUs
-if args.gpus:
-    if args.gpus > 1:
+if CONFIG["gpus"]:
+    if CONFIG["gpus"] > 1:
         model = nn.DataParallel(model)
 
 model.to(DEVICE)
 print_model(CONFIG, model)
 
 print("\nTraining on %d GPU(s) with batch_size %d for %d epochs" %
-      (args.gpus, args.batch_size, args.epochs))
+      (CONFIG["gpus"], CONFIG["batch_size"], CONFIG["epochs"]))
 sys.stdout.flush()
 
 best_val_loss = float("inf")
@@ -134,10 +133,10 @@ history = {
 }
 
 epoch = 0
-model_name = "%s%s.pt" % (CONFIG["SAVE_DIR"], args.model)
+model_name = "%s%s.pt" % (CONFIG["SAVE_DIR"], CONFIG["model"])
 
-lr = args.lr
-for epoch in range(1, args.epochs + 1):
+lr = CONFIG["lr"]
+for epoch in range(1, CONFIG["epochs"] + 1):
     epoch_start_time = time.time()
     print(f'Epoch: {epoch:02}')
     print('\tTrain: ', end='')
@@ -145,7 +144,7 @@ for epoch in range(1, args.epochs + 1):
         train_dl,
         model,
         criterion,
-        list(range(args.gpus)),
+        list(range(CONFIG["gpus"])),
         DEVICE,
         optimizer,
         scheduler=scheduler,
@@ -164,7 +163,7 @@ for epoch in range(1, args.epochs + 1):
             model,
             criterion,
             DEVICE,
-            temperature=args.temp,
+            temperature=CONFIG["temp"],
             seq2seq=not classify,
             pad_idx=vocab[CONFIG["pad_token"]] if not classify else -1)
     history['valid_loss'].append(valid_loss)
@@ -178,17 +177,12 @@ for epoch in range(1, args.epochs + 1):
         torch.save(model_to_save, model_name)
 
     # Additional Info when using cuda
-    if DEVICE.type == 'cuda':
-        print('Memory Usage:')
-        for i in range(args.gpus):
-            max_alloc = round(torch.cuda.max_memory_allocated(i) / 1024**3, 1)
-            cached = round(torch.cuda.memory_cached(i) / 1024**3, 1)
-            print(f'GPU: {i} Allocated: {max_alloc}G Cached: {cached}G')
+    print_cuda_usage(CONFIG) if DEVICE.type == 'cuda' else None
 
 print('Printing Loss Curves')
 plot_training(history,
               CONFIG["SAVE_DIR"],
-              title="%s_lr%s" % (args.model, args.lr))
+              title="%s_lr%s" % (CONFIG["model"], CONFIG["lr"]))
 
 print("Evaluating predictions on test set")
 # Load best model
@@ -200,11 +194,11 @@ else:
     vocab_len = len(vocab)
 
     (valid_all_trg_y, valid_topk_preds, valid_topk_preds_scores,
-     valid_all_preds) = translate_neural_signal(CONFIG, args, vocab, DEVICE,
+     valid_all_preds) = translate_neural_signal(CONFIG, vocab, DEVICE,
                                                 best_model, valid_dl,
                                                 vocab_len)
     (train_all_trg_y, train_topk_preds, train_topk_preds_scores,
-     train_all_preds) = translate_neural_signal(CONFIG, args, vocab, DEVICE,
+     train_all_preds) = translate_neural_signal(CONFIG, vocab, DEVICE,
                                                 best_model, train_dl,
                                                 vocab_len)
 
@@ -217,7 +211,7 @@ else:
                             index=False)
 
     train_freqs = {vocab[key]: val for key, val in word2freq.items()}
-    save_dir = CONFIG["SAVE_DIR"]
+
     do_plot = True
     remove_tokens = [
         CONFIG["begin_token"], CONFIG["end_token"], CONFIG["oov_token"],
@@ -234,7 +228,7 @@ else:
                  labels,
                  i2w,
                  train_freqs,
-                 save_dir,
+                 CONFIG["SAVE_DIR"],
                  do_plot,
                  given_thresholds=None,
                  title='word1',
@@ -251,7 +245,7 @@ else:
                  labels,
                  i2w,
                  train_freqs,
-                 save_dir,
+                 CONFIG["SAVE_DIR"],
                  do_plot,
                  given_thresholds=None,
                  title='word2',
@@ -325,7 +319,7 @@ else:
                  labels,
                  bigram_i2w,
                  bigram_train_freqs,
-                 save_dir,
+                 CONFIG["SAVE_DIR"],
                  do_plot,
                  given_thresholds=None,
                  title='bigram',
