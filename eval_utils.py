@@ -67,7 +67,7 @@ def evaluate_roc(predictions,
         tprs.append(tpr)
         y_pred = probs >= threshold
         tn, fp, fn, tp = confusion_matrix(c_labels, y_pred).ravel()
-        lines.append('%s\t%3d\t%3d\t%.3f\t%d\t%d\t%d\t%d\n' %
+        lines.append('%8s\t%5d\t%5d\t\t%.5f\t%5d\t%5d\t%5d\t%5d\n' %
                      (word, n_true, train_count, score, tp, fp, fn, tn))
         if do_plot:
             fig, axes = plt.subplots(1, 2, figsize=(16, 6))
@@ -108,7 +108,7 @@ def evaluate_roc(predictions,
     print('Weighted Avg AUC: %d\t%.6f' % (scores.size, weighted_avg))
 
     # Write to file
-    with open(save_dir + 'aucs%s.txt' % suffix, 'w') as fout:
+    with open(save_dir + 'aucs-%s.txt' % suffix, 'w') as fout:
         for line in lines:
             fout.write(line)
 

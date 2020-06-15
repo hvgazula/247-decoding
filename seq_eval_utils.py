@@ -195,17 +195,18 @@ def word_wise_roc(CONFIG,
     labels = np.zeros((true.size, true.max() + 1))
     labels[np.arange(true.size), true] = 1
     predictions = valid_all_preds.numpy()[:, col_range]
-    evaluate_roc(predictions,
-                 labels,
-                 i2w,
-                 train_freqs,
-                 CONFIG["SAVE_DIR"],
-                 do_plot=True,
-                 given_thresholds=None,
-                 title=string,
-                 suffix=string,
-                 min_train=10,
-                 tokens_to_remove=remove_tokens)
+    auc_dict = evaluate_roc(predictions,
+                            labels,
+                            i2w,
+                            train_freqs,
+                            CONFIG["SAVE_DIR"],
+                            do_plot=True,
+                            given_thresholds=None,
+                            title=string,
+                            suffix=string,
+                            min_train=10,
+                            tokens_to_remove=remove_tokens)
+    return auc_dict
 
 
 def return_bigram_proba(preds, n_classes):

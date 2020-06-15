@@ -23,7 +23,8 @@ from model_utils import return_model
 from plot_utils import figure5, plot_training
 from rw_utils import bigram_counts_to_csv, print_model
 from seq_eval_utils import (bigram_freq_excel, create_excel_preds,
-                            translate_neural_signal, word_wise_roc, return_bigram_proba)
+                            translate_neural_signal, word_wise_roc,
+                            return_bigram_proba)
 from train_eval import train, valid
 from utils import fix_random_seed, print_cuda_usage
 from vocab_builder import create_vocab
@@ -207,16 +208,18 @@ else:
         CONFIG["pad_token"]
     ]
 
+    aucs = []
     for string in ['word1', 'word2']:
         print(f'Postprocessing for {string}')
-        word_wise_roc(CONFIG,
-                      vocab,
-                      valid_preds_df,
-                      valid_all_preds,
-                      train_freqs,
-                      remove_tokens,
-                      i2w,
-                      string=string)
+        auc_dict = word_wise_roc(CONFIG,
+                                 vocab,
+                                 valid_preds_df,
+                                 valid_all_preds,
+                                 train_freqs,
+                                 remove_tokens,
+                                 i2w,
+                                 string=string)
+        aucs.append(auc_dict)
 
     # Post-processing for bigrams as classes
     valid_all_preds_bigram = return_bigram_proba(valid_all_preds, len(vocab))
