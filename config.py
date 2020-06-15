@@ -49,8 +49,6 @@ def return_config_dict():
 def build_config(args, results_str):
 
     CONFIG = return_config_dict()
-
-    # GPUs
     gpus = min(args.gpus, torch.cuda.device_count())
 
     # Model objectives
@@ -78,15 +76,6 @@ def build_config(args, results_str):
     if not os.path.isdir(SAVE_DIR):
         os.makedirs(SAVE_DIR)
 
-    DIR_DICT = dict(CONV_DIRS=CONV_DIRS,
-                    META_DIRS=META_DIRS,
-                    SAVE_DIR=SAVE_DIR,
-                    LOG_FILE=LOG_FILE,
-                    classify=classify,
-                    gpus=gpus)
-
-    CONFIG.update(DIR_DICT)
-
     if len(args.subjects) == 1:
         if args.subjects[0] == '625':
             CONFIG["datum_suffix"] = [CONFIG["datum_suffix"][0]]
@@ -99,6 +88,13 @@ def build_config(args, results_str):
         list(range(1, k + 1)) for k in CONFIG["max_electrodes"]
     ]
 
+    DIR_DICT = dict(CONV_DIRS=CONV_DIRS,
+                    META_DIRS=META_DIRS,
+                    SAVE_DIR=SAVE_DIR,
+                    LOG_FILE=LOG_FILE,
+                    classify=classify,
+                    gpus=gpus)
+    CONFIG.update(DIR_DICT)
     write_config(CONFIG)
 
     return CONFIG

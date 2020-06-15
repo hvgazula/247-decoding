@@ -1,7 +1,6 @@
 import itertools
 import math
 import os
-import sys
 import time
 from datetime import datetime
 
@@ -38,7 +37,6 @@ CONFIG = build_config(args, results_str)
 # sys.stdout = open(CONFIG["LOG_FILE"], 'w')
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-print(DEVICE, type(DEVICE))
 print(f'Start Time: {date_str}')
 print(f'Setting Random seed: {CONFIG["seed"]}')
 fix_random_seed(CONFIG)
@@ -121,7 +119,6 @@ print_model(CONFIG, model)
 
 print("\nTraining on %d GPU(s) with batch_size %d for %d epochs" %
       (CONFIG["gpus"], CONFIG["batch_size"], CONFIG["epochs"]))
-sys.stdout.flush()
 
 best_val_loss = float("inf")
 best_model = model
@@ -132,13 +129,13 @@ history = {
     'valid_acc': []
 }
 
-epoch = 0
 model_name = "%s%s.pt" % (CONFIG["SAVE_DIR"], CONFIG["model"])
 
 lr = CONFIG["lr"]
 for epoch in range(1, CONFIG["epochs"] + 1):
-    epoch_start_time = time.time()
     print(f'Epoch: {epoch:02}')
+    epoch_start_time = time.time()
+
     print('\tTrain: ', end='')
     train_loss, train_acc = train(
         train_dl,
@@ -150,13 +147,10 @@ for epoch in range(1, CONFIG["epochs"] + 1):
         scheduler=scheduler,
         seq2seq=not classify,
         pad_idx=vocab[CONFIG["pad_token"]] if not classify else -1)
-    for param_group in optimizer.param_groups:
-        if 'lr' in param_group:
-            print(' | lr {:1.2E}'.format(param_group['lr']))
-            break
+
     history['train_loss'].append(train_loss)
     history['train_acc'].append(train_acc)
-    print('\tValid: ', end='')
+    print('\n\tValid: ', end='')
     with torch.no_grad():
         valid_loss, valid_acc = valid(
             valid_dl,
@@ -191,16 +185,13 @@ best_model = torch.load(model_name)
 if classify:
     print('Need to work on this part of the code')
 else:
-    vocab_len = len(vocab)
-
-    (valid_all_trg_y, valid_topk_preds, valid_topk_preds_scores,
-     valid_all_preds) = translate_neural_signal(CONFIG, vocab, DEVICE,
-                                                best_model, valid_dl,
-                                                vocab_len)
+    print("Start of postprocessing seq2seq results")
     (train_all_trg_y, train_topk_preds, train_topk_preds_scores,
      train_all_preds) = translate_neural_signal(CONFIG, vocab, DEVICE,
-                                                best_model, train_dl,
-                                                vocab_len)
+                                                best_model, train_dl)
+    (valid_all_trg_y, valid_topk_preds, valid_topk_preds_scores,
+     valid_all_preds) = translate_neural_signal(CONFIG, vocab, DEVICE,
+                                                best_model, valid_dl)
 
     valid_preds_df = create_excel_preds(valid_all_trg_y, valid_topk_preds, i2w)
     train_preds_df = create_excel_preds(train_all_trg_y, train_topk_preds, i2w)
@@ -326,5 +317,3 @@ else:
                  suffix='bigram',
                  min_train=5,
                  tokens_to_remove=remove_tokens)
-
-    print("so far so good")
