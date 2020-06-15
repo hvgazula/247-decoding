@@ -26,10 +26,10 @@ def translate_neural_signal(CONFIG, vocab, device, model, data_iterator):
     valid_bi_preds = torch.zeros(data_set_len, 3, vocab_len)
     all_trg_y = torch.zeros(data_set_len, 3, dtype=torch.int32)
 
+    softmax = nn.Softmax(dim=1)
+
     if CONFIG["gpus"]:
         model.to(device)
-
-    softmax = nn.Softmax(dim=1)
 
     # Calculate all predictions on test set
     with torch.no_grad():
@@ -206,3 +206,23 @@ def word_wise_roc(CONFIG,
                  suffix=string,
                  min_train=10,
                  tokens_to_remove=remove_tokens)
+
+
+def return_bigram_proba(preds, n_classes):
+    # EXAMPLE
+    # a = np.array([[1,2],[3,4]])
+    # np.repeat(a, 2, axis=2)
+    # np.tile(a, (1, 2))
+    softmax = nn.Softmax(dim=1)
+
+    first = preds[:, n_classes * 0:n_classes * 1]
+    second = preds[:, n_classes * 1:n_classes * 2]
+
+    first_repeat = torch.repeat_interleave(
+        first, n_classes, dim=1)  # this is similar to np.repeat
+    second_repeat = second.repeat((1, n_classes))  # this is similar to np.tile
+
+    all_preds = first_repeat * second_repeat  # hadamard product
+    all_preds = softmax(all_preds)  # softmax in dim=1
+
+    return all_preds

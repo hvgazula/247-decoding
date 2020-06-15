@@ -23,7 +23,7 @@ from model_utils import return_model
 from plot_utils import figure5, plot_training
 from rw_utils import bigram_counts_to_csv, print_model
 from seq_eval_utils import (bigram_freq_excel, create_excel_preds,
-                            translate_neural_signal, word_wise_roc)
+                            translate_neural_signal, word_wise_roc, return_bigram_proba)
 from train_eval import train, valid
 from utils import fix_random_seed, print_cuda_usage
 from vocab_builder import create_vocab
@@ -219,25 +219,7 @@ else:
                       string=string)
 
     # Post-processing for bigrams as classes
-    # EXAMPLE
-    # a = np.array([[1,2],[3,4]])
-    # np.repeat(a, 2, axis=2)
-    # np.tile(a, (1, 2))
-    softmax = nn.Softmax(dim=1)
-
-    valid_all_preds_first = valid_all_preds[:, n_classes * 0:n_classes * 1]
-    valid_all_preds_second = valid_all_preds[:, n_classes * 1:n_classes * 2]
-
-    valid_all_preds_first_repeat = torch.repeat_interleave(
-        valid_all_preds_first, n_classes,
-        dim=1)  # this is similar to np.repeat
-    valid_all_preds_second_repeat = valid_all_preds_second.repeat(
-        (1, n_classes))  # this is similar to np.tile
-
-    valid_all_preds_bigram = valid_all_preds_first_repeat * \
-        valid_all_preds_second_repeat  # hadamard product
-    valid_all_preds_bigram = softmax(
-        valid_all_preds_bigram)  # softmax in dim=1
+    valid_all_preds_bigram = return_bigram_proba(valid_all_preds, len(vocab))
 
     raw_train_df = bigram_freq_excel(CONFIG, y_train, word2freq, i2w,
                                      "625_bi-gram-freq-train.xlsx")
