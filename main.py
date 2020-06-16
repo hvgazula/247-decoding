@@ -223,20 +223,10 @@ else:
         aucs.append(auc_dict)
 
     # Post-processing for bigrams as classes
-    raw_train_df = bigram_freq_excel(CONFIG, y_train, word2freq, i2w,
-                                     "625_bi-gram-freq-train.xlsx")
-    raw_valid_df = bigram_freq_excel(CONFIG,
-                                     y_test,
-                                     word2freq,
-                                     i2w,
-                                     "625_bi-gram-freq-valid.xlsx",
-                                     ref_data=raw_train_df)
-
     bigram_i2w, bigram_w2i = return_bigram_vocab(vocab)
     valid_preds_df['bigram_index'] = valid_preds_df.set_index(
         ['word1', 'word2']).index.map(bigram_w2i.get)
 
-    # doing it for bigrams
     true = np.array(valid_preds_df['bigram_index'])
     labels = np.zeros((true.size, n_classes**2))
     labels[np.arange(true.size), true] = 1
