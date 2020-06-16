@@ -67,7 +67,7 @@ def evaluate_roc(predictions,
         tprs.append(tpr)
         y_pred = probs >= threshold
         tn, fp, fn, tp = confusion_matrix(c_labels, y_pred).ravel()
-        lines.append('%8s\t%5d\t%5d\t\t%.5f\t%5d\t%5d\t%5d\t%5d\n' %
+        lines.append('%12s\t%5d\t%5d\t\t%.5f\t%5d\t%5d\t%5d\t%5d\n' %
                      (word, n_true, train_count, score, tp, fp, fn, tn))
         if do_plot:
             fig, axes = plt.subplots(1, 2, figsize=(16, 6))

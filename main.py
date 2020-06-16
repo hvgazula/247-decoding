@@ -1,4 +1,3 @@
-import itertools
 import math
 import os
 import time
@@ -23,8 +22,8 @@ from model_utils import return_model
 from plot_utils import figure5, plot_training
 from rw_utils import bigram_counts_to_csv, print_model
 from seq_eval_utils import (bigram_freq_excel, create_excel_preds,
-                            translate_neural_signal, word_wise_roc,
-                            return_bigram_proba)
+                            return_bigram_proba, translate_neural_signal,
+                            word_wise_roc)
 from train_eval import train, valid
 from utils import fix_random_seed, print_cuda_usage
 from vocab_builder import create_vocab
@@ -233,10 +232,7 @@ else:
                                      "625_bi-gram-freq-valid.xlsx",
                                      ref_data=raw_train_df)
 
-    abc = [p for p in itertools.product(vocab.keys(), repeat=2)]
-    bigram_i2w = {i: '_'.join(words) for i, words in enumerate(abc)}
-    new_df = pd.DataFrame(abc, columns=['word1', 'word2'])
-    new_df['bigram_index'] = new_df.index
+    new_df, bigram_i2w = return_bigram_vocab(vocab)
     new_valid_preds_df = pd.merge(valid_preds_df,
                                   new_df,
                                   how='left',

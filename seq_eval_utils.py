@@ -1,10 +1,12 @@
+import itertools
 import os
+import sys
 
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-import sys
+
 from eval_utils import evaluate_roc
 
 
@@ -227,3 +229,11 @@ def return_bigram_proba(preds, n_classes):
     all_preds = softmax(all_preds)  # softmax in dim=1
 
     return all_preds
+
+
+def return_bigram_vocab(vocab):
+    abc = [p for p in itertools.product(vocab.keys(), repeat=2)]
+    i2w = {i: '_'.join(words) for i, words in enumerate(abc)}
+    df = pd.DataFrame(abc, columns=['word1', 'word2'])
+    df['bigram_index'] = df.index
+    return df, i2w
