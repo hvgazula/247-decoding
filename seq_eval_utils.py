@@ -167,11 +167,11 @@ def bigram_freq_excel(CONFIG, data, word2freq, i2w, filename, ref_data=None):
 
     valid_df.to_excel(os.path.join(CONFIG["SAVE_DIR"], filename), index=False)
 
-    print(len(valid_df['word1'].unique()))
-    print(len(valid_df['word2'].unique()))
+    # print(len(valid_df['word1'].unique()))
+    # print(len(valid_df['word2'].unique()))
 
-    print(set(word2freq.keys()) - set(valid_df['word1'].unique()))
-    print(set(word2freq.keys()) - set(valid_df['word2'].unique()))
+    # print(set(word2freq.keys()) - set(valid_df['word1'].unique()))
+    # print(set(word2freq.keys()) - set(valid_df['word2'].unique()))
 
     return valid_df
 
@@ -233,7 +233,13 @@ def return_bigram_proba(preds, n_classes):
 
 def return_bigram_vocab(vocab):
     abc = [p for p in itertools.product(vocab.keys(), repeat=2)]
+    w2i = {word: i for i, word in enumerate(abc)}
     i2w = {i: '_'.join(words) for i, words in enumerate(abc)}
-    df = pd.DataFrame(abc, columns=['word1', 'word2'])
-    df['bigram_index'] = df.index
-    return df, i2w
+    return i2w, w2i
+
+
+def calc_bigram_train_freqs(df):
+    a = df[['bigram_index', 'Count']]
+    kabc = a.to_dict('records')
+    train_freqs = {item['bigram_index']: item['Count'] for item in kabc}
+    return train_freqs

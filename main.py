@@ -4,7 +4,6 @@ import time
 from datetime import datetime
 
 import numpy as np
-import pandas as pd
 import torch
 import torch.nn as nn
 import torch.utils.data as data
@@ -23,7 +22,8 @@ from plot_utils import figure5, plot_training
 from rw_utils import bigram_counts_to_csv, print_model
 from seq_eval_utils import (bigram_freq_excel, create_excel_preds,
                             return_bigram_proba, translate_neural_signal,
-                            word_wise_roc)
+                            word_wise_roc, return_bigram_vocab,
+                            calc_bigram_train_freqs)
 from train_eval import train, valid
 from utils import fix_random_seed, print_cuda_usage
 from vocab_builder import create_vocab
@@ -196,9 +196,11 @@ else:
     valid_preds_df = create_excel_preds(valid_all_trg_y, valid_topk_preds, i2w)
     train_preds_df = create_excel_preds(train_all_trg_y, train_topk_preds, i2w)
 
-    valid_preds_df.to_excel(os.path.join(CONFIG["SAVE_DIR"], 'valid_set.xlsx'),
+    valid_preds_df.to_excel(os.path.join(CONFIG["SAVE_DIR"],
+                                         'Test_Set_Predictions.xlsx'),
                             index=False)
-    train_preds_df.to_excel(os.path.join(CONFIG["SAVE_DIR"], 'train_set.xlsx'),
+    train_preds_df.to_excel(os.path.join(CONFIG["SAVE_DIR"],
+                                         'Train_Set_Predictions.xlsx'),
                             index=False)
 
     train_freqs = {vocab[key]: val for key, val in word2freq.items()}
@@ -221,8 +223,6 @@ else:
         aucs.append(auc_dict)
 
     # Post-processing for bigrams as classes
-    valid_all_preds_bigram = return_bigram_proba(valid_all_preds, len(vocab))
-
     raw_train_df = bigram_freq_excel(CONFIG, y_train, word2freq, i2w,
                                      "625_bi-gram-freq-train.xlsx")
     raw_valid_df = bigram_freq_excel(CONFIG,
@@ -232,35 +232,28 @@ else:
                                      "625_bi-gram-freq-valid.xlsx",
                                      ref_data=raw_train_df)
 
-    new_df, bigram_i2w = return_bigram_vocab(vocab)
-    new_valid_preds_df = pd.merge(valid_preds_df,
-                                  new_df,
-                                  how='left',
-                                  on=['word1', 'word2'])
+    bigram_i2w, bigram_w2i = return_bigram_vocab(vocab)
+    valid_preds_df['bigram_index'] = valid_preds_df.set_index(
+        ['word1', 'word2']).index.map(bigram_w2i.get)
 
     # doing it for bigrams
-    true = np.array(new_valid_preds_df['bigram_index'])
+    true = np.array(valid_preds_df['bigram_index'])
     labels = np.zeros((true.size, n_classes**2))
     labels[np.arange(true.size), true] = 1
-    predictions = valid_all_preds_bigram
+    predictions = return_bigram_proba(valid_all_preds, len(vocab))
 
     raw_train_df = bigram_freq_excel(CONFIG, y_train, word2freq, i2w,
-                                     "676_bi-gram-freq-train.xlsx")
+                                     "Train-bigram-freq.xlsx")
     raw_valid_df = bigram_freq_excel(CONFIG,
                                      y_test,
                                      word2freq,
                                      i2w,
-                                     "676_bi-gram-freq-valid.xlsx",
+                                     "valid-bigram-freq.xlsx",
                                      ref_data=raw_train_df)
-    new_raw_train_df = pd.merge(raw_train_df,
-                                new_df,
-                                how='left',
-                                on=['word1', 'word2'])
+    raw_train_df['bigram_index'] = raw_train_df.set_index(
+        ['word1', 'word2']).index.map(bigram_w2i)
 
-    a = new_raw_train_df[['bigram_index', 'Count']]
-    kabc = a.to_dict('records')
-    bigram_train_freqs = {item['bigram_index']: item['Count'] for item in kabc}
-
+    bigram_train_freqs = calc_bigram_train_freqs(raw_train_df)
     evaluate_roc(predictions,
                  labels,
                  bigram_i2w,
