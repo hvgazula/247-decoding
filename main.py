@@ -219,9 +219,7 @@ if classify:
 
     train_freq = Counter(y_train)
 
-    # Evaluate top-k
     print("Evaluating top-k")
-    sys.stdout.flush()
     res = evaluate_topk(all_preds,
                         np.array(y_test),
                         i2w,
@@ -230,9 +228,7 @@ if classify:
                         suffix='-val',
                         min_train=args.vocab_min_freq)
 
-    # Evaluate ROC-AUC
     print("Evaluating ROC-AUC")
-    sys.stdout.flush()
     res.update(
         evaluate_roc(all_preds,
                      categorical,
@@ -305,6 +301,19 @@ else:
         ['word1', 'word2']).index.map(bigram_w2i)
 
     bigram_train_freqs = calc_bigram_train_freqs(raw_train_df)
+
+    print("Evaluating top-k")
+    evaluate_topk(predictions.numpy(),
+                  true,
+                  bigram_i2w,
+                  Counter(bigram_train_freqs),
+                  CONFIG["SAVE_DIR"],
+                  min_train=5,
+                  prefix='bigram',
+                  suffix='bigram',
+                  tokens_to_remove=remove_tokens)
+
+    print("Evaluating ROC-AUC")
     evaluate_roc(predictions,
                  labels,
                  bigram_i2w,
@@ -316,13 +325,3 @@ else:
                  suffix='bigram',
                  min_train=5,
                  tokens_to_remove=remove_tokens)
-
-    evaluate_topk(predictions.numpy(),
-                  true,
-                  bigram_i2w,
-                  Counter(bigram_train_freqs),
-                  CONFIG["SAVE_DIR"],
-                  min_train=5,
-                  prefix='bigram',
-                  suffix='bigram',
-                  tokens_to_remove=remove_tokens)
