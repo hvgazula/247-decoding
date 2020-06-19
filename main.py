@@ -1,8 +1,9 @@
 import math
 import os
 import time
-from datetime import datetime
 from collections import Counter
+from datetime import datetime
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -20,10 +21,10 @@ from gram_utils import transform_labels
 from model_utils import return_model
 from plot_utils import figure5, plot_training
 from rw_utils import bigram_counts_to_csv, print_model
-from seq_eval_utils import (bigram_freq_excel, create_excel_preds,
-                            return_bigram_proba, translate_neural_signal,
-                            word_wise_roc, return_bigram_vocab,
-                            calc_bigram_train_freqs)
+from seq_eval_utils import (bigram_freq_excel, calc_bigram_train_freqs,
+                            create_excel_preds, return_bigram_proba,
+                            return_bigram_vocab, translate_neural_signal,
+                            word_wise_roc)
 from train_eval import train, valid
 from utils import fix_random_seed, print_cuda_usage
 from vocab_builder import create_vocab

@@ -157,8 +157,15 @@ def evaluate_roc(predictions,
 ### Evaluate top-k performance of the model. (assumes activations can be
 ### interpreted as probabilities).
 ### (predictions, labels of shape (n_examples, n_classes))
-def evaluate_topk(predictions, labels, i2w, train_freqs, save_dir,
-                  min_train=10, prefix='', suffix='', tokens_to_remove=[]):
+def evaluate_topk(predictions,
+                  labels,
+                  i2w,
+                  train_freqs,
+                  save_dir,
+                  min_train=10,
+                  prefix='',
+                  suffix='',
+                  tokens_to_remove=[]):
     ranks = []
     n_examples, n_classes = predictions.shape
     fid = open(save_dir + 'guesses%s.csv' % suffix, 'w')
@@ -222,7 +229,7 @@ def evaluate_topk(predictions, labels, i2w, train_freqs, save_dir,
 
     # Calculate chance levels based on training word frequencies
     freqs = Counter(labels)
-    freqs = np.array([freqs[i] for i,_ in train_freqs.most_common()])
+    freqs = np.array([freqs[i] for i, _ in train_freqs.most_common()])
     freqs = freqs[freqs > 0]
     chances = (freqs / freqs.sum()).cumsum() * 100
 
@@ -246,17 +253,17 @@ def evaluate_topk(predictions, labels, i2w, train_freqs, save_dir,
     with open(save_dir + 'topk-aucs-%s.txt' % suffix, 'w') as fout:
         for item in accs:
             fout.write('%10s\t\t%2.5f\t\t%2.5f\t\t%2.5f\n' \
-                % (item[0], item[1][0], item[1][1], item[1][2]))    
+                % (item[0], item[1][0], item[1][1], item[1][2]))
 
     return {
         prefix + 'top1': top1,
         prefix + 'top5': top5,
         prefix + 'top10': top10,
-        prefix + 'top1_chance':  chances[0],
-        prefix + 'top5_chance':  chances[4],
+        prefix + 'top1_chance': chances[0],
+        prefix + 'top5_chance': chances[4],
         prefix + 'top10_chance': chances[9],
-        prefix + 'top1_above':  (top1 - chances[0]) / chances[0],
-        prefix + 'top5_above':  (top5 - chances[4]) / chances[4],
+        prefix + 'top1_above': (top1 - chances[0]) / chances[0],
+        prefix + 'top5_above': (top5 - chances[4]) / chances[4],
         prefix + 'top10_above': (top10 - chances[9]) / chances[9],
         prefix + 'top1_n_uniq_correct': len(top1_uw),
         prefix + 'top5_n_uniq_correct': len(top5_uw),
