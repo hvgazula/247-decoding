@@ -1,8 +1,11 @@
+import json
 import math
 import os
+import sys
 import time
 from collections import Counter
 from datetime import datetime
+from pprint import pprint
 
 import numpy as np
 import torch
@@ -184,7 +187,64 @@ print("Evaluating predictions on test set")
 best_model = torch.load(model_name)
 
 if classify:
-    print('Need to work on this part of the code')
+    print("\nEvaluating predictions on test set")
+    # Load best model
+    model = torch.load(model_name)
+    if args.gpus:
+        if args.gpus > 1:
+            model = nn.DataParallel(model)
+        model.to(DEVICE)
+
+    start, end = 0, 0
+    softmax = nn.Softmax(dim=1)
+    all_preds = np.zeros((len(X_test), n_classes), dtype=np.float32)
+    print('Allocating', np.prod(all_preds.shape) * 5 / 1e9, 'GB')
+
+    # Calculate all predictions on test set
+    with torch.no_grad():
+        for batch in valid_dl:
+            src, trg = batch[0].to(DEVICE), batch[1].to(DEVICE,
+                                                        dtype=torch.long)
+            end = start + src.size(0)
+            out = softmax(model(src))
+            all_preds[start:end, :] = out.cpu()
+            start = end
+
+    print("Calculated predictions")
+
+    # Make categorical
+    n_examples = len(y_test)
+    categorical = np.zeros((n_examples, n_classes), dtype=np.float32)
+    categorical[np.arange(n_examples), y_test] = 1
+
+    train_freq = Counter(y_train)
+
+    # Evaluate top-k
+    print("Evaluating top-k")
+    sys.stdout.flush()
+    res = evaluate_topk(all_preds,
+                        np.array(y_test),
+                        i2w,
+                        train_freq,
+                        CONFIG["SAVE_DIR"],
+                        suffix='-val',
+                        min_train=args.vocab_min_freq)
+
+    # Evaluate ROC-AUC
+    print("Evaluating ROC-AUC")
+    sys.stdout.flush()
+    res.update(
+        evaluate_roc(all_preds,
+                     categorical,
+                     i2w,
+                     train_freq,
+                     CONFIG["SAVE_DIR"],
+                     do_plot=not args.no_plot,
+                     min_train=args.vocab_min_freq))
+    pprint(res.items())
+    print("Saving results")
+    with open(CONFIG["SAVE_DIR"] + "results.json", "w") as fp:
+        json.dump(res, fp, indent=4)
 else:
     print("Start of postprocessing seq2seq results")
     (train_all_trg_y, train_topk_preds, train_topk_preds_scores,
