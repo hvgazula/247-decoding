@@ -2,7 +2,7 @@ import math
 import os
 import time
 from datetime import datetime
-
+from collections import Counter
 import numpy as np
 import torch
 import torch.nn as nn
@@ -14,7 +14,7 @@ from arg_parser import arg_parser
 from build_matrices import build_design_matrices
 from config import build_config
 from dl_utils import Brain2TextDataset, MyCollator
-from eval_utils import evaluate_roc
+from eval_utils import evaluate_roc, evaluate_topk
 from filter_utils import filter_by_labels, filter_by_signals
 from gram_utils import transform_labels
 from model_utils import return_model
@@ -255,3 +255,13 @@ else:
                  suffix='bigram',
                  min_train=5,
                  tokens_to_remove=remove_tokens)
+
+    evaluate_topk(predictions.numpy(),
+                  true,
+                  bigram_i2w,
+                  Counter(bigram_train_freqs),
+                  CONFIG["SAVE_DIR"],
+                  min_train=5,
+                  prefix='bigram',
+                  suffix='bigram',
+                  tokens_to_remove=remove_tokens)
