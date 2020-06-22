@@ -64,8 +64,6 @@ signals, labels = filter_by_labels(CONFIG, signals, labels, 20)
 assert len(signals) == len(labels), "Size Mismatch: Filter 2"
 print(f'Number of Examples (Post Class Size Cutoff): {len(signals)}')
 
-bigram_counts_to_csv(CONFIG, labels, data_str='mixed')
-
 X_train, X_test, y_train, y_test = train_test_split(
     signals,
     labels,
@@ -73,9 +71,8 @@ X_train, X_test, y_train, y_test = train_test_split(
     test_size=0.30,
     random_state=CONFIG["seed"])
 
-bigram_counts_to_csv(CONFIG, y_train, data_str='train')
-bigram_counts_to_csv(CONFIG, y_test, data_str='test')
-
+bigram_counts_to_csv(CONFIG, [labels, y_train, y_test], data_str='mixed')
+raise Exception("Hello")
 print(f'Size of Training Set is: {len(X_train)}')
 print(f'Size of Test Set is: {len(X_test)}')
 

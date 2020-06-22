@@ -7,26 +7,32 @@ from filter_utils import label_counts
 
 def format_dataframe(df):
     for column in df.select_dtypes(include='object'):
-        df[column] = df[column].map('{:8s}'.format)
+        df[column] = df[column].map('{:11s}'.format)
     for column in df.select_dtypes(include='int'):
-        df[column] = df[column].map('{:5d}'.format)
-    df.columns = df.columns.map('{:8s}'.format)
+        df[column] = df[column].map('{:11d}'.format)
+    df.columns = df.columns.map('{:11s}'.format)
 
     return df
 
 
-def bigram_counts_to_csv(CONFIG, labels, data_str=None):
+def bigram_counts_to_csv(CONFIG, labels_list, classify=True, data_str=None):
     classify = CONFIG["classify"]
-    label_counter = label_counts(labels, classify=classify)
+    labels, y_train, y_test = labels_list
+    all_labels_counter = label_counts(labels, classify=classify)
+    train_labels_counter = label_counts(y_train, classify=classify)
+    test_labels_counter = label_counts(y_test, classify=classify)
 
-    col_size = 1 if classify else len(list(label_counter.keys())[0])
+    col_size = 1 if classify else len(list(all_labels_counter.keys())[0])
 
     col_names = [
         '_'.join(['word', str(num)]) for num in range(1, col_size + 1)
     ]
-    df = pd.Series(label_counter).rename_axis(
-        col_names).sort_index().reset_index(name='Count')
-    df = format_dataframe(df)
+    df_all = pd.Series(all_labels_counter).rename_axis(
+        col_names).sort_index().reset_index(name='Total_Count')
+    df_train = pd.Series(train_labels_counter).rename_axis(
+        col_names).sort_index().reset_index(name='Train_Count')
+    df_test = pd.Series(test_labels_counter).rename_axis(
+        col_names).sort_index().reset_index(name='Test_Count')
 
     if not data_str:
         print('No file name specified.')
@@ -35,6 +41,10 @@ def bigram_counts_to_csv(CONFIG, labels, data_str=None):
     else:
         file_name = '_'.join([data_str, 'count']) + '.csv'
 
+    df = pd.merge(df_train, df_test, on=['word_1', 'word_2'])
+    df = pd.merge(df, df_all, on=['word_1', 'word_2'])
+
+    df = format_dataframe(df)
     df.to_csv(os.path.join(CONFIG["SAVE_DIR"], file_name), index=False)
 
     return None
