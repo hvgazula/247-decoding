@@ -70,8 +70,8 @@ def build_config(args, results_str):
     META_DIRS = [
         CONFIG["data_dir"] + '/%s-metadata/' % i for i in args.subjects
     ]
-    SAVE_DIR = './Results/%s-%s-%s/' % (results_str, '+'.join(
-        args.subjects), args.model)
+    SAVE_DIR = './Results/%s-%s-%s-%s/' % (results_str, '+'.join(
+        args.subjects), args.model, str(args.seed))
     LOG_FILE = SAVE_DIR + 'output'
     if not os.path.isdir(SAVE_DIR):
         os.makedirs(SAVE_DIR)

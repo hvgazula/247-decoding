@@ -29,7 +29,7 @@ for vocab_min_freq in 10; do
       for lr in 0.0001; do
         for weight_decay in 0.05; do
           for dropout in 0.05; do
-            for model in "MeNTAL"; do
+            for model in "ConvNet10"; do
               python main.py --subjects 676 \
                                 --max-electrodes 64 \
                                 --model ${model} \
@@ -38,6 +38,7 @@ for vocab_min_freq in 10; do
                                 --weight-decay ${weight_decay} \
                                 --vocab-min-freq ${vocab_min_freq} \
                                 --vocab-max-freq ${vocab_max_freq} \
+                                --seed $SLURM_ARRAY_TASK_ID \
                                 --max-num-bins ${max_num_bins} &
             done;
           done;
