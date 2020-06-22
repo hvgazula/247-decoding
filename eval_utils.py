@@ -1,3 +1,4 @@
+import json
 import os
 from collections import Counter
 
@@ -113,7 +114,8 @@ def evaluate_roc(predictions,
             fout.write(line)
 
     # Plot histogram and AUC as a function of num of examples
-    _, ax = plt.subplots(1, 1)
+    fig = plt.figure()
+    ax = plt.subplot(1, 2, 1)
     ax.scatter(word_freqs, scores, marker='.')
     ax.set_xlabel('# examples')
     ax.set_ylabel('AUC')
@@ -121,10 +123,10 @@ def evaluate_roc(predictions,
                  (title, weighted_avg, scores.size))
     ax.set_yticks(np.arange(0., 1.1, 0.1))
     ax.grid()
-    plt.savefig(save_dir + 'roc-auc-examples-%s.png' % suffix,
-                bbox_inches='tight')
+    # plt.savefig(save_dir + 'roc-auc-examples-%s.png' % suffix,
+    #             bbox_inches='tight')
 
-    _, ax = plt.subplots(1, 1)
+    ax = plt.subplot(1, 2, 2)
     ax.hist(scores, bins=20)
     ax.set_xlabel('AUC')
     ax.set_ylabel('# labels')
@@ -145,18 +147,22 @@ def evaluate_roc(predictions,
                  (title, weighted_avg, scores.size))
     plt.savefig(save_dir + 'roc-auc-all-%s.png' % suffix, bbox_inches='tight')
 
-    return {
+    auc_summary = {
         'rocauc_avg': avg_auc,
         'rocauc_stddev': scores.std(),
         'rocauc_w_avg': weighted_avg,
-        'rocauc_n': scores.size,
-        'rocs': rocs
+        'rocauc_n': scores.size
     }
 
+    with open(os.path.join(save_dir, 'auc-summary-%s' % suffix), 'w+') as f:
+        f.write(json.dumps(auc_summary, indent=4))
 
-### Evaluate top-k performance of the model. (assumes activations can be
-### interpreted as probabilities).
-### (predictions, labels of shape (n_examples, n_classes))
+    return
+
+
+# Evaluate top-k performance of the model. (assumes activations can be
+# interpreted as probabilities).
+# (predictions, labels of shape (n_examples, n_classes))
 def evaluate_topk(predictions,
                   labels,
                   i2w,
@@ -168,7 +174,7 @@ def evaluate_topk(predictions,
                   tokens_to_remove=[]):
     ranks = []
     n_examples, n_classes = predictions.shape
-    fid = open(save_dir + 'guesses%s.csv' % suffix, 'w')
+    fid = open(save_dir + 'guesses-%s.csv' % suffix, 'w')
     top1_uw, top5_uw, top10_uw = set(), set(), set()
     accs, sizes = {}, {}
     total_freqs = float(sum(train_freqs.values()))
@@ -215,11 +221,7 @@ def evaluate_topk(predictions,
         else:
             accs[word] = (0., chance_acc, -chance_acc)
     accs = sorted(accs.items(), key=lambda x: -x[1][2])
-
     fid.close()
-    print('Top1 #Unique:', len(top1_uw))
-    print('Top5 #Unique:', len(top5_uw))
-    print('Top10 #Unique:', len(top10_uw))
 
     n_examples = len(ranks)
     ranks = np.array(ranks)
@@ -235,38 +237,26 @@ def evaluate_topk(predictions,
 
     # Print and write to file
     if suffix is not None:
-        with open(save_dir + 'topk%s.txt' % suffix, 'w') as fout:
+        with open(save_dir + 'topk-%s.txt' % suffix, 'w') as fout:
             line = 'n_classes: %d\nn_examples: %d' % (n_classes, n_examples)
-            print(line)
             fout.write(line + '\n')
             line = 'Top-1\t%.4f %% (%.2f %%)' % (top1, chances[0])
-            print(line)
             fout.write(line + '\n')
             line = 'Top-5\t%.4f %% (%.2f %%)' % (top5, chances[4])
-            print(line)
             fout.write(line + '\n')
             line = 'Top-10\t%.4f %% (%.2f %%)' % (top10, chances[9])
-            print(line)
+            fout.write(line + '\n')
+            line = 'Top1 #Unique: %3d' % len(top1_uw)
+            fout.write(line + '\n')
+            line = 'Top1 #Unique: %3d' % len(top5_uw)
+            fout.write(line + '\n')
+            line = 'Top1 #Unique: %3d' % len(top10_uw)
             fout.write(line + '\n')
 
     # Write to file
     with open(save_dir + 'topk-aucs-%s.txt' % suffix, 'w') as fout:
         for item in accs:
-            fout.write('%10s\t\t%2.5f\t\t%2.5f\t\t%2.5f\n' \
-                % (item[0], item[1][0], item[1][1], item[1][2]))
+            fout.write('%12s\t%5.5f\t%5.5f\t%5.5f\n' %
+                       (item[0], item[1][0], item[1][1], item[1][2]))
 
-    return {
-        prefix + 'top1': top1,
-        prefix + 'top5': top5,
-        prefix + 'top10': top10,
-        prefix + 'top1_chance': chances[0],
-        prefix + 'top5_chance': chances[4],
-        prefix + 'top10_chance': chances[9],
-        prefix + 'top1_above': (top1 - chances[0]) / chances[0],
-        prefix + 'top5_above': (top5 - chances[4]) / chances[4],
-        prefix + 'top10_above': (top10 - chances[9]) / chances[9],
-        prefix + 'top1_n_uniq_correct': len(top1_uw),
-        prefix + 'top5_n_uniq_correct': len(top5_uw),
-        prefix + 'top10_n_uniq_correct': len(top10_uw),
-        prefix + 'word_accuracies': accs
-    }
+    return

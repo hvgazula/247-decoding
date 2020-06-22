@@ -6,13 +6,14 @@ from filter_utils import label_counts
 
 
 def format_dataframe(df):
-    for column in df.select_dtypes(include='object'):
-        df[column] = df[column].map('{:^12s}'.format)
-    for column in df.select_dtypes(include='int'):
-        df[column] = df[column].map('{:^12d}'.format)
-    df.columns = df.columns.map('{:^12s}'.format)
+    df1 = df.copy(deep=True)
+    for column in df1.select_dtypes(include='object'):
+        df1[column] = df1[column].map('{:^12s}'.format)
+    for column in df1.select_dtypes(include='int'):
+        df1[column] = df1[column].map('{:^12d}'.format)
+    df1.columns = df1.columns.map('{:^12s}'.format)
 
-    return df
+    return df1
 
 
 def bigram_counts_to_csv(CONFIG, labels_list, classify=True, data_str=None):

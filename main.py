@@ -33,12 +33,12 @@ from utils import fix_random_seed, print_cuda_usage
 from vocab_builder import create_vocab
 
 now = datetime.now()
-date_str = now.strftime("%A %d/%m/%Y %H:%M:%S")
+date_str = now.strftime("%A %m/%d/%Y %H:%M:%S")
 results_str = now.strftime("%Y-%m-%d-%H:%M")
 
 args = arg_parser()
 CONFIG = build_config(args, results_str)
-sys.stdout = open(CONFIG["LOG_FILE"], 'w')
+# sys.stdout = open(CONFIG["LOG_FILE"], 'w')
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print(f'Start Time: {date_str}')
@@ -252,34 +252,29 @@ else:
     train_preds_df = create_excel_preds(train_all_trg_y, train_topk_preds,
                                         train_all_preds, i2w)
 
-    valid_preds_df = format_dataframe(valid_preds_df)
-    train_preds_df = format_dataframe(train_preds_df)
+    format_dataframe(valid_preds_df).to_csv(os.path.join(
+        CONFIG["SAVE_DIR"], 'Test_Set_Word-level_Predictions.csv'),
+                                            index=False)
+    format_dataframe(train_preds_df).to_csv(os.path.join(
+        CONFIG["SAVE_DIR"], 'Train_Set_Word-level_Predictions.csv'),
+                                            index=False)
 
-    valid_preds_df.to_csv(os.path.join(CONFIG["SAVE_DIR"],
-                                       'Test_Set_Word-level_Predictions.csv'),
-                          index=False)
-    train_preds_df.to_csv(os.path.join(CONFIG["SAVE_DIR"],
-                                       'Train_Set_Word-level_Predictions.csv'),
-                          index=False)
-    raise Exception("Hello")
     train_freqs = {vocab[key]: val for key, val in word2freq.items()}
     remove_tokens = [
         CONFIG["begin_token"], CONFIG["end_token"], CONFIG["oov_token"],
         CONFIG["pad_token"]
     ]
 
-    aucs = []
     for string in ['word1', 'word2']:
         print(f'Postprocessing for {string}')
-        auc_dict = word_wise_roc(CONFIG,
-                                 vocab,
-                                 valid_preds_df,
-                                 valid_all_preds,
-                                 train_freqs,
-                                 remove_tokens,
-                                 i2w,
-                                 string=string)
-        aucs.append(auc_dict)
+        word_wise_roc(CONFIG,
+                      vocab,
+                      valid_preds_df,
+                      valid_all_preds,
+                      train_freqs,
+                      remove_tokens,
+                      i2w,
+                      string=string)
 
     # Post-processing for bigrams as classes
     bigram_i2w, bigram_w2i = return_bigram_vocab(vocab)

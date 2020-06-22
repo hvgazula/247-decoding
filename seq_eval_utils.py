@@ -1,13 +1,14 @@
 import itertools
 import os
 import sys
+from collections import Counter
 
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
 
-from eval_utils import evaluate_roc
+from eval_utils import evaluate_roc, evaluate_topk
 
 
 def translate_neural_signal(CONFIG, vocab, device, model, data_iterator):
@@ -216,18 +217,28 @@ def word_wise_roc(CONFIG,
     labels = np.zeros((true.size, true.max() + 1))
     labels[np.arange(true.size), true] = 1
     predictions = valid_all_preds.numpy()[:, col_range]
-    auc_dict = evaluate_roc(predictions,
-                            labels,
-                            i2w,
-                            train_freqs,
-                            CONFIG["SAVE_DIR"],
-                            do_plot=True,
-                            given_thresholds=None,
-                            title=string,
-                            suffix=string,
-                            min_train=10,
-                            tokens_to_remove=remove_tokens)
-    return auc_dict
+    evaluate_topk(predictions,
+                  true,
+                  i2w,
+                  Counter(train_freqs),
+                  CONFIG["SAVE_DIR"],
+                  prefix=string,
+                  suffix=string,
+                  min_train=10,
+                  tokens_to_remove=remove_tokens)
+
+    evaluate_roc(predictions,
+                 labels,
+                 i2w,
+                 train_freqs,
+                 CONFIG["SAVE_DIR"],
+                 do_plot=True,
+                 given_thresholds=None,
+                 title=string,
+                 suffix=string,
+                 min_train=10,
+                 tokens_to_remove=remove_tokens)
+    return
 
 
 def return_bigram_proba(preds, n_classes):
