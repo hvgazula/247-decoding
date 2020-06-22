@@ -7,10 +7,10 @@ from filter_utils import label_counts
 
 def format_dataframe(df):
     for column in df.select_dtypes(include='object'):
-        df[column] = df[column].map('{:11s}'.format)
+        df[column] = df[column].map('{:^12s}'.format)
     for column in df.select_dtypes(include='int'):
-        df[column] = df[column].map('{:11d}'.format)
-    df.columns = df.columns.map('{:11s}'.format)
+        df[column] = df[column].map('{:^12d}'.format)
+    df.columns = df.columns.map('{:^12s}'.format)
 
     return df
 

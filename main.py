@@ -23,7 +23,7 @@ from filter_utils import filter_by_labels, filter_by_signals
 from gram_utils import transform_labels
 from model_utils import return_model
 from plot_utils import figure5, plot_training
-from rw_utils import bigram_counts_to_csv, print_model
+from rw_utils import bigram_counts_to_csv, format_dataframe, print_model
 from seq_eval_utils import (bigram_freq_excel, calc_bigram_train_freqs,
                             create_excel_preds, return_bigram_proba,
                             return_bigram_vocab, translate_neural_signal,
@@ -72,7 +72,7 @@ X_train, X_test, y_train, y_test = train_test_split(
     random_state=CONFIG["seed"])
 
 bigram_counts_to_csv(CONFIG, [labels, y_train, y_test], data_str='mixed')
-raise Exception("Hello")
+
 print(f'Size of Training Set is: {len(X_train)}')
 print(f'Size of Test Set is: {len(X_test)}')
 
@@ -247,16 +247,21 @@ else:
      valid_all_preds) = translate_neural_signal(CONFIG, vocab, DEVICE,
                                                 best_model, valid_dl)
 
-    valid_preds_df = create_excel_preds(valid_all_trg_y, valid_topk_preds, i2w)
-    train_preds_df = create_excel_preds(train_all_trg_y, train_topk_preds, i2w)
+    valid_preds_df = create_excel_preds(valid_all_trg_y, valid_topk_preds,
+                                        valid_all_preds, i2w)
+    train_preds_df = create_excel_preds(train_all_trg_y, train_topk_preds,
+                                        train_all_preds, i2w)
 
-    valid_preds_df.to_excel(os.path.join(CONFIG["SAVE_DIR"],
-                                         'Test_Set_Predictions.xlsx'),
-                            index=False)
-    train_preds_df.to_excel(os.path.join(CONFIG["SAVE_DIR"],
-                                         'Train_Set_Predictions.xlsx'),
-                            index=False)
+    valid_preds_df = format_dataframe(valid_preds_df)
+    train_preds_df = format_dataframe(train_preds_df)
 
+    valid_preds_df.to_csv(os.path.join(CONFIG["SAVE_DIR"],
+                                       'Test_Set_Word-level_Predictions.csv'),
+                          index=False)
+    train_preds_df.to_csv(os.path.join(CONFIG["SAVE_DIR"],
+                                       'Train_Set_Word-level_Predictions.csv'),
+                          index=False)
+    raise Exception("Hello")
     train_freqs = {vocab[key]: val for key, val in word2freq.items()}
     remove_tokens = [
         CONFIG["begin_token"], CONFIG["end_token"], CONFIG["oov_token"],

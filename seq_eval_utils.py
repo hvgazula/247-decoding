@@ -88,6 +88,23 @@ def calc_rank(x, string):
     return rank
 
 
+def calc_rank1(x, string, all_preds):
+    num_preds = all_preds.shape[-1] // 3
+    ranks = []
+    if string == 'word1':
+        pred_ranks = torch.argsort(all_preds[:, :num_preds],
+                                   dim=1,
+                                   descending=True)
+    elif string == 'word2':
+        pred_ranks = torch.argsort(all_preds[:, num_preds:2 * num_preds],
+                                   dim=1,
+                                   descending=True)
+
+    for i, word in enumerate(x):
+        ranks.append(np.where(word == pred_ranks[i])[0][0])
+    return ranks
+
+
 def fill_topk_cols(x, string):
     rank = x['_'.join([string, 'rank'])]
 
@@ -105,7 +122,7 @@ def fill_topk_cols(x, string):
     return abc
 
 
-def apply_rank(df, string=None):
+def apply_rank(df, all_preds, string=None):
     if not str:
         print("Bad String")
         return 0
@@ -113,24 +130,26 @@ def apply_rank(df, string=None):
     rank_word = '_'.join([string, 'rank'])
     top_col_names = ['_'.join([string, 't' + str(i)]) for i in [1, 5, 10]]
 
-    df[rank_word] = df.apply(calc_rank, axis=1, args=(string, ))
+    # df[rank_word] = df.apply(calc_rank, axis=1, args=(string, ))
+    df[rank_word] = calc_rank1(df[string].tolist(), string, all_preds)
     df[top_col_names] = pd.DataFrame(
         df.apply(fill_topk_cols, axis=1, args=(string, )).tolist())
 
     return df
 
 
-def create_excel_preds(targets, top_predictions, i2w):
+def create_excel_preds(targets, top_predictions, all_preds, i2w):
     df = pd.DataFrame(targets.numpy(), columns=['word1', 'word2', 'word3'])
     df = df.drop(columns=['word3'])
     pred_col_names = [
         '_'.join([word, str(i).zfill(2)]) for word in ['word1', 'word2']
         for i in range(1, 11)
     ]
-    df[pred_col_names] = pd.DataFrame(top_predictions.numpy()[:, :20])
 
-    df = apply_rank(df, string='word1')
-    df = apply_rank(df, string='word2')
+    df = apply_rank(df, all_preds, string='word1')
+    df = apply_rank(df, all_preds, string='word2')
+
+    df[pred_col_names] = pd.DataFrame(top_predictions.numpy()[:, :20])
 
     df[pred_col_names] = df[pred_col_names].replace(i2w)
     df['word1'] = df['word1'].replace(i2w)
