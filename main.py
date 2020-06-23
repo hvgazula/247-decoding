@@ -23,7 +23,7 @@ from filter_utils import filter_by_labels, filter_by_signals
 from gram_utils import transform_labels
 from model_utils import return_model
 from plot_utils import figure5, plot_training
-from rw_utils import bigram_counts_to_csv, format_dataframe, print_model
+from rw_utils import format_dataframe, print_model
 from seq_eval_utils import (calc_bigram_train_freqs, create_excel_preds,
                             return_bigram_proba, return_bigram_vocab,
                             save_bigram_counts, translate_neural_signal,
@@ -60,7 +60,7 @@ signals, labels = filter_by_signals(signals, labels, 75)
 assert len(signals) == len(labels), "Size Mismatch: Filter 1"
 print(f'Number of Examples (Post Signal Length Cutoff): {len(signals)}')
 
-signals, labels = filter_by_labels(CONFIG, signals, labels, 20)
+signals, labels = filter_by_labels(CONFIG, signals, labels, 30)
 assert len(signals) == len(labels), "Size Mismatch: Filter 2"
 print(f'Number of Examples (Post Class Size Cutoff): {len(signals)}')
 
@@ -70,8 +70,6 @@ X_train, X_test, y_train, y_test = train_test_split(
     stratify=labels,
     test_size=0.30,
     random_state=CONFIG["seed"])
-
-# bigram_counts_to_csv(CONFIG, [labels, y_train, y_test], data_str='mixed')
 
 print(f'Size of Training Set is: {len(X_train)}')
 print(f'Size of Test Set is: {len(X_test)}')

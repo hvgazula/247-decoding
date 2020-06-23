@@ -29,9 +29,9 @@ for vocab_min_freq in 10; do
       for lr in 0.0001; do
         for weight_decay in 0.05; do
           for dropout in 0.05; do
-            for model in "ConvNet10"; do
-              python main.py --subjects 676 \
-                                --max-electrodes 64 \
+            for model in "MeNTAL"; do
+              python main.py --subjects 625 \
+                                --max-electrodes 55 \
                                 --model ${model} \
                                 --lr ${lr} \
                                 --tf-dropout ${dropout} \
