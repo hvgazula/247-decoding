@@ -24,9 +24,9 @@ from gram_utils import transform_labels
 from model_utils import return_model
 from plot_utils import figure5, plot_training
 from rw_utils import bigram_counts_to_csv, format_dataframe, print_model
-from seq_eval_utils import (bigram_freq_excel, calc_bigram_train_freqs,
-                            create_excel_preds, return_bigram_proba,
-                            return_bigram_vocab, translate_neural_signal,
+from seq_eval_utils import (calc_bigram_train_freqs, create_excel_preds,
+                            return_bigram_proba, return_bigram_vocab,
+                            save_bigram_counts, translate_neural_signal,
                             word_wise_roc)
 from train_eval import train, valid
 from utils import fix_random_seed, print_cuda_usage
@@ -38,7 +38,7 @@ results_str = now.strftime("%Y-%m-%d-%H:%M")
 
 args = arg_parser()
 CONFIG = build_config(args, results_str)
-# sys.stdout = open(CONFIG["LOG_FILE"], 'w')
+sys.stdout = open(CONFIG["LOG_FILE"], 'w')
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print(f'Start Time: {date_str}')
@@ -71,7 +71,7 @@ X_train, X_test, y_train, y_test = train_test_split(
     test_size=0.30,
     random_state=CONFIG["seed"])
 
-bigram_counts_to_csv(CONFIG, [labels, y_train, y_test], data_str='mixed')
+# bigram_counts_to_csv(CONFIG, [labels, y_train, y_test], data_str='mixed')
 
 print(f'Size of Training Set is: {len(X_train)}')
 print(f'Size of Test Set is: {len(X_test)}')
@@ -286,18 +286,12 @@ else:
     labels[np.arange(true.size), true] = 1
     predictions = return_bigram_proba(valid_all_preds, len(vocab))
 
-    raw_train_df = bigram_freq_excel(CONFIG, y_train, word2freq, i2w,
-                                     "Train-bigram-freq.xlsx")
-    raw_valid_df = bigram_freq_excel(CONFIG,
-                                     y_test,
-                                     word2freq,
-                                     i2w,
-                                     "valid-bigram-freq.xlsx",
-                                     ref_data=raw_train_df)
+    my_df = save_bigram_counts(CONFIG, [y_train, y_test], word2freq, i2w,
+                               'bigram-counts.csv')
+    raw_train_df = my_df.loc[:, ['word1', 'word2', 'count_train']]
     raw_train_df['bigram_index'] = raw_train_df.set_index(
         ['word1', 'word2']).index.map(bigram_w2i)
-
-    bigram_train_freqs = calc_bigram_train_freqs(raw_train_df)
+    bigram_train_freqs = calc_bigram_train_freqs(raw_train_df, 'count_train')
 
     print("Evaluating top-k")
     evaluate_topk(predictions.numpy(),
@@ -305,7 +299,7 @@ else:
                   bigram_i2w,
                   Counter(bigram_train_freqs),
                   CONFIG["SAVE_DIR"],
-                  min_train=5,
+                  min_train=10,
                   prefix='bigram',
                   suffix='bigram',
                   tokens_to_remove=remove_tokens)
@@ -320,5 +314,5 @@ else:
                  given_thresholds=None,
                  title='bigram',
                  suffix='bigram',
-                 min_train=5,
+                 min_train=10,
                  tokens_to_remove=remove_tokens)

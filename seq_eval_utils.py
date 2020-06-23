@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 
 from eval_utils import evaluate_roc, evaluate_topk
+from rw_utils import format_dataframe
 
 
 def translate_neural_signal(CONFIG, vocab, device, model, data_iterator):
@@ -268,8 +269,55 @@ def return_bigram_vocab(vocab):
     return i2w, w2i
 
 
-def calc_bigram_train_freqs(df):
-    a = df[['bigram_index', 'Count']]
+def calc_bigram_train_freqs(df, col_name):
+    a = df[['bigram_index', col_name]]
     kabc = a.to_dict('records')
-    train_freqs = {item['bigram_index']: item['Count'] for item in kabc}
+    train_freqs = {item['bigram_index']: item[col_name] for item in kabc}
     return train_freqs
+
+
+def bigram_counts_df(data, i2w):
+    df = replace_words(data, i2w)
+    df_bigram_count = df.groupby(['word1',
+                                  'word2']).size().reset_index(name='count')
+
+    df_w1count = df.groupby('word1').size().rename_axis('word1').reset_index(
+        name='w1_count')
+    df_w2count = df.groupby('word2').size().rename_axis('word2').reset_index(
+        name='w2_count')
+
+    df_wcounta = pd.merge(df_bigram_count,
+                          df_w1count,
+                          left_on='word1',
+                          right_on='word1')
+    df_wcountb = pd.merge(df_bigram_count,
+                          df_w2count,
+                          left_on='word2',
+                          right_on='word2')
+
+    df_new = pd.merge(df_wcounta, df_wcountb, on=['word1', 'word2', 'count'])
+
+    return df_new
+
+
+def save_bigram_counts(CONFIG, data, word2freq, i2w, filename):
+    y_train, y_test = data
+
+    valid_df_new = bigram_counts_df(y_test, i2w)
+    train_df_new = bigram_counts_df(y_train, i2w)
+
+    new_df = pd.merge(train_df_new,
+                      valid_df_new,
+                      on=['word1', 'word2'],
+                      suffixes=('_train', '_test'))
+    new_df['total_count'] = new_df.count_test + new_df.count_train
+
+    new_df["word1_in_2"] = new_df['word1'].apply(
+        lambda x: int(x in new_df['word2'].values))
+    new_df["word2_in_1"] = new_df['word2'].apply(
+        lambda x: int(x in new_df['word1'].values))
+
+    format_dataframe(new_df).to_csv(os.path.join(CONFIG["SAVE_DIR"], filename),
+                                    index=False)
+
+    return new_df
