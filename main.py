@@ -1,11 +1,9 @@
-import json
 import math
 import os
 import sys
 import time
 from collections import Counter
 from datetime import datetime
-from pprint import pprint
 
 import numpy as np
 import torch
@@ -215,27 +213,22 @@ if classify:
     train_freq = Counter(y_train)
 
     print("Evaluating top-k")
-    res = evaluate_topk(all_preds,
-                        np.array(y_test),
-                        i2w,
-                        train_freq,
-                        CONFIG["SAVE_DIR"],
-                        suffix='-val',
-                        min_train=args.vocab_min_freq)
+    evaluate_topk(all_preds,
+                  np.array(y_test),
+                  i2w,
+                  train_freq,
+                  CONFIG["SAVE_DIR"],
+                  suffix='-val',
+                  min_train=args.vocab_min_freq)
 
     print("Evaluating ROC-AUC")
-    res.update(
-        evaluate_roc(all_preds,
-                     categorical,
-                     i2w,
-                     train_freq,
-                     CONFIG["SAVE_DIR"],
-                     do_plot=not args.no_plot,
-                     min_train=args.vocab_min_freq))
-    pprint(res.items())
-    print("Saving results")
-    with open(CONFIG["SAVE_DIR"] + "results.json", "w") as fp:
-        json.dump(res, fp, indent=4)
+    evaluate_roc(all_preds,
+                 categorical,
+                 i2w,
+                 train_freq,
+                 CONFIG["SAVE_DIR"],
+                 do_plot=not args.no_plot,
+                 min_train=args.vocab_min_freq)
 else:
     print("Start of postprocessing seq2seq results")
     (train_all_trg_y, train_topk_preds, train_topk_preds_scores,
