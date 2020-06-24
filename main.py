@@ -22,10 +22,10 @@ from gram_utils import transform_labels
 from model_utils import return_model
 from plot_utils import figure5, plot_training
 from rw_utils import format_dataframe, print_model
-from seq_eval_utils import (calc_bigram_train_freqs, create_excel_preds,
-                            return_bigram_proba, return_bigram_vocab,
-                            save_bigram_counts, translate_neural_signal,
-                            word_wise_roc)
+from seq_eval_utils import (bigram_accuracy_report, calc_bigram_train_freqs,
+                            create_excel_preds, return_bigram_proba,
+                            return_bigram_vocab, save_bigram_counts,
+                            translate_neural_signal, word_wise_roc)
 from train_eval import train, valid
 from utils import fix_random_seed, print_cuda_usage
 from vocab_builder import create_vocab
@@ -307,3 +307,9 @@ else:
                  suffix='bigram',
                  min_train=10,
                  tokens_to_remove=remove_tokens)
+
+    sys.stdout = open(
+        os.path.join(CONFIG["SAVE_DIR"], 'bigram_classification_report.csv'),
+        'w')
+    bigram_accuracy_report(CONFIG, vocab, i2w, valid_all_trg_y,
+                                 valid_all_preds)

@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
+from sklearn.metrics import classification_report
 
 from eval_utils import evaluate_roc, evaluate_topk
 from rw_utils import format_dataframe
@@ -321,3 +322,46 @@ def save_bigram_counts(CONFIG, data, word2freq, i2w, filename):
                                     index=False)
 
     return new_df
+
+
+def bigram_accuracy_report(CONFIG, vocab, i2w, valid_all_trg_y,
+                           valid_all_preds):
+    a, b = valid_all_trg_y[:, :2], valid_all_preds[:, :2 * len(vocab)]
+
+    word1 = a[:, 0]
+    word2 = a[:, 1]
+
+    word1_scores = b[:, :len(vocab)]
+    word2_scores = b[:, len(vocab):2 * len(vocab)]
+    word1_top_pred = torch.argmax(word1_scores, dim=1)
+    word2_top_pred = torch.argmax(word2_scores, dim=1)
+
+    pred_df = pd.DataFrame({
+        'word1': [],
+        'word2': [],
+        'word1_pred': [],
+        'word2_pred': []
+    })
+
+    pred_df['word1'] = word1
+    pred_df['word2'] = word2
+    pred_df['word1_pred'] = word1_top_pred
+    pred_df['word2_pred'] = word2_top_pred
+
+    pred_df = pred_df.replace(i2w)
+
+    pred_df['join_input'] = pred_df.word1 + '_' + pred_df.word2
+    pred_df['join_output'] = pred_df.word1_pred + '_' + pred_df.word2_pred
+
+    labels = pred_df.join_output.unique().tolist() + pred_df.join_input.unique(
+    ).tolist()
+
+    report = classification_report(pred_df.join_input,
+                                   pred_df.join_output,
+                                   labels=labels,
+                                   zero_division=0,
+                                   output_dict=0)
+
+    print(report)
+
+    return
