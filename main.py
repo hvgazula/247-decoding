@@ -21,7 +21,7 @@ from filter_utils import filter_by_labels, filter_by_signals
 from gram_utils import transform_labels
 from model_utils import return_model
 from plot_utils import figure5, plot_training
-from rw_utils import format_dataframe, print_model
+from rw_utils import print_model, tabulate_and_print
 from seq_eval_utils import (bigram_accuracy_report, calc_bigram_train_freqs,
                             create_excel_preds, return_bigram_proba,
                             return_bigram_vocab, save_bigram_counts,
@@ -244,12 +244,10 @@ else:
     train_preds_df = create_excel_preds(train_all_trg_y, train_topk_preds,
                                         train_all_preds, i2w)
 
-    format_dataframe(valid_preds_df).to_csv(os.path.join(
-        CONFIG["SAVE_DIR"], 'Test_Set_Word-level_Predictions.csv'),
-                                            index=False)
-    format_dataframe(train_preds_df).to_csv(os.path.join(
-        CONFIG["SAVE_DIR"], 'Train_Set_Word-level_Predictions.csv'),
-                                            index=False)
+    tabulate_and_print(CONFIG, valid_preds_df,
+                       'Test_Set_Word-level_Predictions.csv')
+    tabulate_and_print(CONFIG, train_preds_df,
+                       'Train_Set_Word-level_Predictions.csv')
 
     topk_accuracy_report(CONFIG, valid_preds_df, string='word1')
     topk_accuracy_report(CONFIG, valid_preds_df, string='word2')
