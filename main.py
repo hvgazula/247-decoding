@@ -37,7 +37,7 @@ results_str = now.strftime("%Y-%m-%d-%H:%M")
 
 args = arg_parser()
 CONFIG = build_config(args, results_str)
-sys.stdout = open(CONFIG["LOG_FILE"], 'w')
+# sys.stdout = open(CONFIG["LOG_FILE"], 'w')
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print(f'Start Time: {date_str}')
@@ -250,14 +250,32 @@ else:
                        'Train_Set_Word-level_Predictions.csv')
 
     print("Printing Top-k Accuracy reports for train set")
-    topk_accuracy_report(CONFIG, train_preds_df, string='word1')
-    topk_accuracy_report(CONFIG, train_preds_df, string='word2')
-    topk_accuracy_report(CONFIG, train_preds_df, string='bigram')
+    topk_accuracy_report(CONFIG,
+                         train_preds_df,
+                         word_str='word1',
+                         file_str='train')
+    topk_accuracy_report(CONFIG,
+                         train_preds_df,
+                         word_str='word2',
+                         file_str='train')
+    topk_accuracy_report(CONFIG,
+                         train_preds_df,
+                         word_str='bigram',
+                         file_str='train')
 
     print("Printing Top-k Accuracy reports for test set")
-    topk_accuracy_report(CONFIG, valid_preds_df, string='word1')
-    topk_accuracy_report(CONFIG, valid_preds_df, string='word2')
-    topk_accuracy_report(CONFIG, valid_preds_df, string='bigram')
+    topk_accuracy_report(CONFIG,
+                         valid_preds_df,
+                         word_str='word1',
+                         file_str='test')
+    topk_accuracy_report(CONFIG,
+                         valid_preds_df,
+                         word_str='word2',
+                         file_str='test')
+    topk_accuracy_report(CONFIG,
+                         valid_preds_df,
+                         word_str='bigram',
+                         file_str='test')
 
     train_freqs = {vocab[key]: val for key, val in word2freq.items()}
     remove_tokens = [

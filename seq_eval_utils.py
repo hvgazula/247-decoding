@@ -366,9 +366,9 @@ def bigram_accuracy_report(CONFIG, vocab, i2w, valid_all_trg_y,
     return
 
 
-def topk_accuracy_report(CONFIG, valid_preds_df, string=None):
+def topk_accuracy_report(CONFIG, valid_preds_df, word_str=None, file_str=None):
 
-    if string == 'bigram':
+    if word_str == 'bigram':
         valid_preds_df[
             'bigram'] = valid_preds_df.word1 + '_' + valid_preds_df.word2
 
@@ -379,7 +379,7 @@ def topk_accuracy_report(CONFIG, valid_preds_df, string=None):
             valid_preds_df[bigram_str] = valid_preds_df[
                 word1_str] + '_' + valid_preds_df[word2_str]
 
-    unique_labels = set(valid_preds_df[string])
+    unique_labels = set(valid_preds_df[word_str])
 
     all_occur = []
     all_corr_pred1, all_corr_pred5, all_corr_pred10 = [], [], []
@@ -388,9 +388,9 @@ def topk_accuracy_report(CONFIG, valid_preds_df, string=None):
     for word in unique_labels:
 
         # calculates the top1-accuracy
-        y_true = valid_preds_df[string]
+        y_true = valid_preds_df[word_str]
         select_cols = [
-            '_'.join([string, str('{:02d}'.format(i))])
+            '_'.join([word_str, str('{:02d}'.format(i))])
             for i in range(1, 1 + 1)
         ]
         y_pred = valid_preds_df.loc[y_true == word, select_cols]
@@ -401,9 +401,9 @@ def topk_accuracy_report(CONFIG, valid_preds_df, string=None):
         top1_accuracy = correct_pred1 / num_occur
 
         # calculates the top5-accuracy
-        y_true = valid_preds_df[string]
+        y_true = valid_preds_df[word_str]
         select_cols = [
-            '_'.join([string, str('{:02d}'.format(i))])
+            '_'.join([word_str, str('{:02d}'.format(i))])
             for i in range(1, 5 + 1)
         ]
         y_pred = valid_preds_df.loc[y_true == word, select_cols]
@@ -414,9 +414,9 @@ def topk_accuracy_report(CONFIG, valid_preds_df, string=None):
         top5_accuracy = correct_pred5 / num_occur
 
         # calculates the top10-accuracy
-        y_true = valid_preds_df[string]
+        y_true = valid_preds_df[word_str]
         select_cols = [
-            '_'.join([string, str('{:02d}'.format(i))])
+            '_'.join([word_str, str('{:02d}'.format(i))])
             for i in range(1, 10 + 1)
         ]
         y_pred = valid_preds_df.loc[y_true == word, select_cols]
@@ -446,7 +446,7 @@ def topk_accuracy_report(CONFIG, valid_preds_df, string=None):
         'Top1Accuracy', 'Top5_Accuracy', 'Top10_Accuracy'
     ]
 
-    file_name = '_'.join(['topk_acc_report', string]) + '.csv'
+    file_name = '_'.join([file_str, word_str, 'topk_acc_report.csv'])
     tabulate_and_print(CONFIG, df, file_name)
 
     return
