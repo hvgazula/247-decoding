@@ -249,6 +249,12 @@ else:
     tabulate_and_print(CONFIG, train_preds_df,
                        'Train_Set_Word-level_Predictions.csv')
 
+    print("Printing Top-k Accuracy reports for train set")
+    topk_accuracy_report(CONFIG, train_preds_df, string='word1')
+    topk_accuracy_report(CONFIG, train_preds_df, string='word2')
+    topk_accuracy_report(CONFIG, train_preds_df, string='bigram')
+
+    print("Printing Top-k Accuracy reports for test set")
     topk_accuracy_report(CONFIG, valid_preds_df, string='word1')
     topk_accuracy_report(CONFIG, valid_preds_df, string='word2')
     topk_accuracy_report(CONFIG, valid_preds_df, string='bigram')
