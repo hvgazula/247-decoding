@@ -34,7 +34,7 @@ def build_design_matrices(CONFIG,
     cumsum_electrodes.insert(0, 0)
 
     signals, labels = [], []
-    for conversation, suffix, idx, electrodes in convs:
+    for conversation, suffix, idx, electrodes in convs[:30]:
         # Check if files exists, if it doesn't go to next
         try:
             datum_fn = glob.glob(conversation + suffix)[0]

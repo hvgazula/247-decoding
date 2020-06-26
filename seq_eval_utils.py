@@ -8,6 +8,7 @@ import pandas as pd
 import torch
 import torch.nn as nn
 from sklearn.metrics import classification_report
+from tabulate import tabulate
 
 from eval_utils import evaluate_roc, evaluate_topk
 from rw_utils import format_dataframe
@@ -443,18 +444,20 @@ def topk_accuracy_report(CONFIG, valid_preds_df, string=None):
         all_corr_pred10, all_top1_acc, all_top5_acc, all_top10_acc
     ]).T
     df.columns = [
-        'Class/Word', 'Class Size', 'Top-1 Count', 'Top-5 Count',
-        'Top-10 Count', 'Top-1 Accuracy', 'Top-5 Accuracy', 'Top-10 Accuracy'
+        'Class', 'Size', 'Top1_Count', 'Top5_Count', 'Top10_Count',
+        'Top1Accuracy', 'Top5_Accuracy', 'Top10_Accuracy'
     ]
 
-    df = df.astype(
-        dict(
-            zip(df.columns, [
-                'object', 'int32', 'int32', 'int32', 'int32', 'float32',
-                'float32', 'float32'
-            ])))
-    df = format_dataframe(df)
+    mystrn = tabulate(df,
+                      headers=df.columns,
+                      showindex='False',
+                      tablefmt='plain',
+                      floatfmt=".4f",
+                      numalign='center',
+                      colalign=("center", ))
+
     file_name = '_'.join(['topk_acc_report', string]) + '.csv'
-    df.to_csv(os.path.join(CONFIG['SAVE_DIR'], file_name), index=False)
+    with open(os.path.join(CONFIG["SAVE_DIR"], file_name), 'w') as f:
+        f.writelines(mystrn)
 
     return
