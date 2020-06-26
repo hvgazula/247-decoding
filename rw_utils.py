@@ -1,6 +1,7 @@
 import os
 
 import pandas as pd
+from tabulate import tabulate
 
 from filter_utils import label_counts
 
@@ -65,3 +66,16 @@ def print_model(CONFIG, model):
     with open(os.path.join(CONFIG["SAVE_DIR"], 'model_summary'),
               'w') as file_h:
         print(model, file=file_h)
+
+
+def tabulate_and_print(CONFIG, data_frame, file_name):
+    mystrn = tabulate(data_frame,
+                      headers=data_frame.columns,
+                      showindex='False',
+                      tablefmt='plain',
+                      floatfmt=".4f",
+                      numalign='center',
+                      colalign=("center", ))
+
+    with open(os.path.join(CONFIG["SAVE_DIR"], file_name), 'w') as f:
+        f.writelines(mystrn)

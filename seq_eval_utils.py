@@ -8,10 +8,9 @@ import pandas as pd
 import torch
 import torch.nn as nn
 from sklearn.metrics import classification_report
-from tabulate import tabulate
 
 from eval_utils import evaluate_roc, evaluate_topk
-from rw_utils import format_dataframe
+from rw_utils import tabulate_and_print
 
 
 def translate_neural_signal(CONFIG, vocab, device, model, data_iterator):
@@ -319,8 +318,7 @@ def save_bigram_counts(CONFIG, data, word2freq, i2w, filename):
     new_df["word2_in_1"] = new_df['word2'].apply(
         lambda x: int(x in new_df['word1'].values))
 
-    format_dataframe(new_df).to_csv(os.path.join(CONFIG["SAVE_DIR"], filename),
-                                    index=False)
+    tabulate_and_print(CONFIG, new_df, filename)
 
     return new_df
 
@@ -448,16 +446,7 @@ def topk_accuracy_report(CONFIG, valid_preds_df, string=None):
         'Top1Accuracy', 'Top5_Accuracy', 'Top10_Accuracy'
     ]
 
-    mystrn = tabulate(df,
-                      headers=df.columns,
-                      showindex='False',
-                      tablefmt='plain',
-                      floatfmt=".4f",
-                      numalign='center',
-                      colalign=("center", ))
-
     file_name = '_'.join(['topk_acc_report', string]) + '.csv'
-    with open(os.path.join(CONFIG["SAVE_DIR"], file_name), 'w') as f:
-        f.writelines(mystrn)
+    tabulate_and_print(CONFIG, df, file_name)
 
     return
