@@ -365,3 +365,96 @@ def bigram_accuracy_report(CONFIG, vocab, i2w, valid_all_trg_y,
     print(report)
 
     return
+
+
+def topk_accuracy_report(CONFIG, valid_preds_df, string=None):
+
+    if string == 'bigram':
+        valid_preds_df[
+            'bigram'] = valid_preds_df.word1 + '_' + valid_preds_df.word2
+
+        for i in range(1, 11):
+            bigram_str = 'bigram_' + '{:02d}'.format(i)
+            word1_str = 'word1_' + '{:02d}'.format(i)
+            word2_str = 'word2_' + '{:02d}'.format(i)
+            valid_preds_df[bigram_str] = valid_preds_df[
+                word1_str] + '_' + valid_preds_df[word2_str]
+
+    unique_labels = set(valid_preds_df[string])
+
+    all_occur = []
+    all_corr_pred1, all_corr_pred5, all_corr_pred10 = [], [], []
+    all_top1_acc, all_top5_acc, all_top10_acc = [], [], []
+
+    for word in unique_labels:
+
+        # calculates the top1-accuracy
+        y_true = valid_preds_df[string]
+        select_cols = [
+            '_'.join([string, str('{:02d}'.format(i))])
+            for i in range(1, 1 + 1)
+        ]
+        y_pred = valid_preds_df.loc[y_true == word, select_cols]
+        num_occur = sum((y_true == word))
+        a = y_true == word
+        b = y_pred[y_pred == word].any(1)
+        correct_pred1 = sum(a & b)
+        top1_accuracy = correct_pred1 / num_occur
+
+        # calculates the top5-accuracy
+        y_true = valid_preds_df[string]
+        select_cols = [
+            '_'.join([string, str('{:02d}'.format(i))])
+            for i in range(1, 5 + 1)
+        ]
+        y_pred = valid_preds_df.loc[y_true == word, select_cols]
+        num_occur = sum((y_true == word))
+        a = y_true == word
+        b = y_pred[y_pred == word].any(1)
+        correct_pred5 = sum(a & b)
+        top5_accuracy = correct_pred5 / num_occur
+
+        # calculates the top10-accuracy
+        y_true = valid_preds_df[string]
+        select_cols = [
+            '_'.join([string, str('{:02d}'.format(i))])
+            for i in range(1, 10 + 1)
+        ]
+        y_pred = valid_preds_df.loc[y_true == word, select_cols]
+        num_occur = sum((y_true == word))
+        a = y_true == word
+        b = y_pred[y_pred == word].any(1)
+        correct_pred10 = sum(a & b)
+        top10_accuracy = correct_pred10 / num_occur
+
+        # gather all stats
+        all_occur.append(num_occur)
+
+        all_corr_pred1.append(correct_pred1)
+        all_corr_pred5.append(correct_pred5)
+        all_corr_pred10.append(correct_pred10)
+
+        all_top1_acc.append(top1_accuracy)
+        all_top5_acc.append(top5_accuracy)
+        all_top10_acc.append(top10_accuracy)
+
+    df = pd.DataFrame([
+        unique_labels, all_occur, all_corr_pred1, all_corr_pred5,
+        all_corr_pred10, all_top1_acc, all_top5_acc, all_top10_acc
+    ]).T
+    df.columns = [
+        'Class/Word', 'Class Size', 'Top-1 Count', 'Top-5 Count',
+        'Top-10 Count', 'Top-1 Accuracy', 'Top-5 Accuracy', 'Top-10 Accuracy'
+    ]
+
+    df = df.astype(
+        dict(
+            zip(df.columns, [
+                'object', 'int32', 'int32', 'int32', 'int32', 'float32',
+                'float32', 'float32'
+            ])))
+    df = format_dataframe(df)
+    file_name = '_'.join(['topk_acc_report', string]) + '.csv'
+    df.to_csv(os.path.join(CONFIG['SAVE_DIR'], file_name), index=False)
+
+    return

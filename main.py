@@ -25,7 +25,8 @@ from rw_utils import format_dataframe, print_model
 from seq_eval_utils import (bigram_accuracy_report, calc_bigram_train_freqs,
                             create_excel_preds, return_bigram_proba,
                             return_bigram_vocab, save_bigram_counts,
-                            translate_neural_signal, word_wise_roc)
+                            topk_accuracy_report, translate_neural_signal,
+                            word_wise_roc)
 from train_eval import train, valid
 from utils import fix_random_seed, print_cuda_usage
 from vocab_builder import create_vocab
@@ -250,6 +251,10 @@ else:
         CONFIG["SAVE_DIR"], 'Train_Set_Word-level_Predictions.csv'),
                                             index=False)
 
+    topk_accuracy_report(CONFIG, valid_preds_df, string='word1')
+    topk_accuracy_report(CONFIG, valid_preds_df, string='word2')
+    topk_accuracy_report(CONFIG, valid_preds_df, string='bigram')
+
     train_freqs = {vocab[key]: val for key, val in word2freq.items()}
     remove_tokens = [
         CONFIG["begin_token"], CONFIG["end_token"], CONFIG["oov_token"],
@@ -312,4 +317,4 @@ else:
         os.path.join(CONFIG["SAVE_DIR"], 'bigram_classification_report.csv'),
         'w')
     bigram_accuracy_report(CONFIG, vocab, i2w, valid_all_trg_y,
-                                 valid_all_preds)
+                           valid_all_preds)
