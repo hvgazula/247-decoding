@@ -62,6 +62,7 @@ def tabulate_and_print(CONFIG, data_frame, file_name):
                       tablefmt='plain',
                       floatfmt=".4f",
                       numalign='center',
+                      stralign='center',
                       colalign=("center", ))
 
     with open(os.path.join(CONFIG["SAVE_DIR"], file_name), 'w') as f:
