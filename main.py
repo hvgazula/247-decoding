@@ -249,33 +249,19 @@ else:
     tabulate_and_print(CONFIG, train_preds_df,
                        'Train_Set_Word-level_Predictions.csv')
 
-    print("Printing Top-k Accuracy reports for train set")
+    print("Printing Top-k Accuracy reports")
     topk_accuracy_report(CONFIG,
                          train_preds_df,
-                         word_str='word1',
-                         file_str='train')
+                         valid_preds_df,
+                         word_str='word1')
     topk_accuracy_report(CONFIG,
                          train_preds_df,
-                         word_str='word2',
-                         file_str='train')
+                         valid_preds_df,
+                         word_str='word2')
     topk_accuracy_report(CONFIG,
                          train_preds_df,
-                         word_str='bigram',
-                         file_str='train')
-
-    print("Printing Top-k Accuracy reports for test set")
-    topk_accuracy_report(CONFIG,
                          valid_preds_df,
-                         word_str='word1',
-                         file_str='test')
-    topk_accuracy_report(CONFIG,
-                         valid_preds_df,
-                         word_str='word2',
-                         file_str='test')
-    topk_accuracy_report(CONFIG,
-                         valid_preds_df,
-                         word_str='bigram',
-                         file_str='test')
+                         word_str='bigram')
 
     train_freqs = {vocab[key]: val for key, val in word2freq.items()}
     remove_tokens = [

@@ -366,7 +366,7 @@ def bigram_accuracy_report(CONFIG, vocab, i2w, valid_all_trg_y,
     return
 
 
-def topk_accuracy_report(CONFIG, valid_preds_df, word_str=None, file_str=None):
+def calc_topk_accuracy(CONFIG, valid_preds_df, word_str=None, file_str=None):
 
     if word_str == 'bigram':
         valid_preds_df[
@@ -446,7 +446,20 @@ def topk_accuracy_report(CONFIG, valid_preds_df, word_str=None, file_str=None):
         'Top1Accuracy', 'Top5_Accuracy', 'Top10_Accuracy'
     ]
 
-    file_name = '_'.join([file_str, word_str, 'topk_acc_report.csv'])
-    tabulate_and_print(CONFIG, df, file_name)
+    return df
 
-    return
+
+def topk_accuracy_report(CONFIG, train_preds_df, valid_preds_df,
+                         word_str=None):
+
+    train_df = calc_topk_accuracy(CONFIG, train_preds_df, word_str=word_str)
+    valid_df = calc_topk_accuracy(CONFIG, valid_preds_df, word_str=word_str)
+
+    df = pd.merge(train_df,
+                  valid_df,
+                  left_on='Class',
+                  right_on='Class',
+                  suffixes=('_train', '_test'))
+
+    file_name = '_'.join(['topk_acc_report', word_str]) + '.csv'
+    tabulate_and_print(CONFIG, df, file_name)
