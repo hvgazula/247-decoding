@@ -366,7 +366,7 @@ def bigram_accuracy_report(CONFIG, vocab, i2w, valid_all_trg_y,
     return
 
 
-def calc_topk_accuracy(CONFIG, valid_preds_df, word_str=None, file_str=None):
+def calc_topk_accuracy(valid_preds_df, word_str=None, file_str=None):
 
     if word_str == 'bigram':
         valid_preds_df[
@@ -452,8 +452,8 @@ def calc_topk_accuracy(CONFIG, valid_preds_df, word_str=None, file_str=None):
 def topk_accuracy_report(CONFIG, train_preds_df, valid_preds_df,
                          word_str=None):
 
-    train_df = calc_topk_accuracy(CONFIG, train_preds_df, word_str=word_str)
-    valid_df = calc_topk_accuracy(CONFIG, valid_preds_df, word_str=word_str)
+    train_df = calc_topk_accuracy(train_preds_df, word_str=word_str)
+    valid_df = calc_topk_accuracy(valid_preds_df, word_str=word_str)
 
     df = pd.merge(train_df,
                   valid_df,
