@@ -12,7 +12,7 @@ def build_design_matrices(CONFIG,
                           fs=512,
                           delimiter=',',
                           aug_shift_ms=[-500, -250, 250]):
-    """[summary]
+    """Build examples and labels for the model
 
     Args:
         CONFIG (dict): configuration information
