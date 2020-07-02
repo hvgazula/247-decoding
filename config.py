@@ -5,11 +5,16 @@ import torch
 
 
 def return_config_dict():
-    '''
-    exclude_words_class: words to be excluded from the classifier vocabulary
-    exclude_words: words to be excluded from the tranformer vocabulary
-    log_interval:
-    '''
+    """Return configuration information
+
+    Returns:
+        dict: configuration information
+
+    Misc:
+        exclude_words_class: exclude words from the classifier vocabulary
+        exclude_words: exclude words from the tranformer vocabulary
+        log_interval:
+    """
     CONFIG = {
         "begin_token":
         "<s>",
@@ -47,7 +52,15 @@ def return_config_dict():
 
 
 def build_config(args, results_str):
+    """Combine configuration and input arguments
 
+    Args:
+        args (OrderedDict): parsed input arguments
+        results_str (str): results folder name
+
+    Returns:
+        dict: combined configuration information
+    """
     CONFIG = return_config_dict()
     gpus = min(args.gpus, torch.cuda.device_count())
 
@@ -101,14 +114,13 @@ def build_config(args, results_str):
 
 
 def write_config(dictionary):
-    """[summary]
+    """Write configuration to a file
 
     Args:
-        CONFIG ([type]): [description]
+        CONFIG (dict): configuration
     """
     json_object = json.dumps(dictionary, indent=4)
 
-    # Writing to sample.json
     config_file = os.path.join(dictionary['SAVE_DIR'], 'config.json')
     with open(config_file, "w") as outfile:
         outfile.write(json_object)
