@@ -1,19 +1,30 @@
 import argparse
 
+from typing import Optional, List
 
-def arg_parser(default_args=None):
-    ''' Explanation of the Arguments:
-    model (string): Type of model to run from among
-                    (PITOM, ConvNet, MeNTALmini, MeNTAL)
-    subject (list of strings): subject id's as a list
-    shift (integer): Amount by which the onset should be shifted
-    lr (float): learning rate
-    gpus (int): number of gpus for the model to run on
-    epochs (int):
-    batch-size (int):
-    window-size (int): window size to consider for the word in ms
-    bin-size (int): bin size in ms
-    init-model (string):
+
+def arg_parser(default_args: Optional[List] = None):
+    '''Read arguments from the command line
+
+    Args:
+        default_args: None/List of arguments (seeexamples)
+
+    Examples::
+        >>> output = arg_parser()
+        >>> output = arg_parser(['--model', 'PITOM',
+                                '--subjects', '625', '676'])
+
+    Miscellaneous:
+        model: DNN model to choose from (PITOM, ConvNet, MeNTALmini, MeNTAL)
+        subjects: (list of strings): subject id's as a list
+        shift (integer): Amount by which the onset should be shifted
+        lr (float): learning rate
+        gpus (int): number of gpus for the model to run on
+        epochs (int): number of epochs
+        batch-size (int): bach-size
+        window-size (int): window size to consider for the word in ms
+        bin-size (int): bin size in milliseconds
+        ...and so on
 '''
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, default='MeNTAL')
