@@ -1,6 +1,5 @@
 import argparse
-
-from typing import Optional, List
+from typing import List, Optional
 
 
 def arg_parser(default_args: Optional[List] = None):
