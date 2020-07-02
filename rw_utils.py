@@ -7,6 +7,15 @@ from filter_utils import label_counts
 
 
 def bigram_counts_to_csv(CONFIG, labels_list, classify=True, data_str=None):
+    """Save train and test bigram counts to file
+
+    Args:
+        CONFIG ([type]): configuration information
+        labels_list (list): list of labels (train and test)
+        classify (bool, optional): classification or seq2seq. Defaults to True.
+        data_str (str, optional): string indicating train/test.
+                                  Defaults to None.
+    """
     classify = CONFIG["classify"]
     labels, y_train, y_test = labels_list
     all_labels_counter = label_counts(labels, classify=classify)
@@ -37,11 +46,14 @@ def bigram_counts_to_csv(CONFIG, labels_list, classify=True, data_str=None):
 
     tabulate_and_print(CONFIG, df, file_name)
 
-    return None
-
 
 def save_word_counter(CONFIG, word2freq):
-    '''Save word counter'''
+    """Write word frequency to file
+
+    Args:
+        CONFIG (dict): configuration
+        word2freq (dict/counter): words and their corresponding frequencies
+    """
     print("Saving word counter")
     df = pd.Series(word2freq).rename_axis(['Word'
                                            ]).reset_index(name='Frequency')
@@ -49,6 +61,12 @@ def save_word_counter(CONFIG, word2freq):
 
 
 def print_model(CONFIG, model):
+    """Save model summary to file
+
+    Args:
+        CONFIG (dict): configuration information
+        model (nn.Module): model object to be saved to file
+    """
     print('Printing Model Summary')
     with open(os.path.join(CONFIG["SAVE_DIR"], 'model_summary'),
               'w') as file_h:
@@ -56,6 +74,13 @@ def print_model(CONFIG, model):
 
 
 def tabulate_and_print(CONFIG, data_frame, file_name):
+    """Convert a dataframe into table and print to file
+
+    Args:
+        CONFIG (dict): configuration information
+        data_frame (DataFrame): dataframe object to tabulate
+        file_name (str): output filename
+    """
     mystrn = tabulate(data_frame,
                       headers=data_frame.columns,
                       showindex='False',
