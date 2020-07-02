@@ -79,14 +79,16 @@ class MyCollator(object):
                           len(self.vocabulary)).scatter_(
                               2, labels.unsqueeze(-1), 1)
         trg, trg_y = trg[:, :-1, :], labels[:, 1:]
+
         pos_mask, pad_mask = self.masks(trg_y)
+
         return src, trg, trg_y, pos_mask, pad_mask
 
     def masks(self, labels):
         """Create source and target masks for seq2seq models
 
         Args:
-            labels ([type]): [description]
+            labels (torch.tensor): index vector of labels
 
         Returns:
             pos_mask (torch.tensor): the additive mask for the trg sequence
