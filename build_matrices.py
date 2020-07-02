@@ -15,16 +15,18 @@ def build_design_matrices(CONFIG,
     """[summary]
 
     Args:
-        CONFIG ([type]): [description]
-        fs (int, optional): [description]. Defaults to 512.
-        delimiter (str, optional): [description]. Defaults to ','.
-        aug_shift_ms (list, optional): [description].
+        CONFIG (dict): configuration information
+        fs (int, optional): frames per second. Defaults to 512.
+        delimiter (str, optional): conversation delimier. Defaults to ','.
+        aug_shift_ms (list, optional): shifts for data augmentation.
         Defaults to [-500, -250, 250].
-        max_num_bins ([type], optional): [description]. Defaults to None.
-        remove_unks (bool, optional): [description]. Defaults to True.
 
     Returns:
-        [type]: [description]
+        tuple: (signals, labels)
+
+    Misc:
+        signals: neural activity data
+        labels: words/n-grams/sentences
     """
     exclude_words = CONFIG["exclude_words"]
     signal_param_dict = convert_ms_to_fs(CONFIG)
@@ -35,8 +37,8 @@ def build_design_matrices(CONFIG,
 
     signals, labels = [], []
     for conversation, suffix, idx, electrodes in convs:
-        # Check if files exists, if it doesn't go to next
-        try:
+
+        try:  # Check if files exists
             datum_fn = glob.glob(conversation + suffix)[0]
         except IndexError:
             print('File DNE: ', conversation + suffix)
@@ -86,7 +88,7 @@ def build_design_matrices(CONFIG,
                 word_signal[i, cumsum_electrodes[idx]:cumsum_electrodes[
                     idx + 1]] = f.mean(axis=0)
 
-            # TODO: Data Augmentation
+            # TODO Data Augmentation
             signals.append(word_signal)
 
     print(f'Total number of conversations: {len(convs)}')
