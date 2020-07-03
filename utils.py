@@ -71,7 +71,7 @@ def return_examples(file, delim, ex_words, vocab_str='std'):
                                    defaults to 'std'.
 
     Returns:
-        [type]: [description]
+        list: example tuples
     """
     with open(file, 'r') as fin:
         lines = map(lambda x: x.split(delim), fin)

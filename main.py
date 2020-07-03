@@ -22,11 +22,11 @@ from gram_utils import transform_labels
 from model_utils import return_model
 from plot_utils import figure5, plot_training
 from rw_utils import print_model, tabulate_and_print
-from seq_eval_utils import (bigram_accuracy_report, calc_bigram_train_freqs,
+from s2s_eval_utils import (bigram_accuracy_report, calc_bigram_train_freqs,
                             create_excel_preds, return_bigram_proba,
                             return_bigram_vocab, save_bigram_counts,
-                            topk_accuracy_report, translate_neural_signal,
-                            word_wise_roc)
+                            topk_accuracy_report, word_wise_roc)
+from s2s_inference import translate_neural_signal
 from train_eval import train, valid
 from utils import fix_random_seed, print_cuda_usage
 from vocab_builder import create_vocab
