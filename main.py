@@ -172,9 +172,7 @@ for epoch in range(1, CONFIG["epochs"] + 1):
     print_cuda_usage(CONFIG) if DEVICE.type == 'cuda' else None
 
 print('Printing Loss Curves')
-plot_training(history,
-              CONFIG["SAVE_DIR"],
-              title="%s_lr%s" % (CONFIG["model"], CONFIG["lr"]))
+plot_training(CONFIG, history)
 
 print("Evaluating predictions on test set")
 # Load best model

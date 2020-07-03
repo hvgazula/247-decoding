@@ -25,15 +25,17 @@ def figure5(SAVE_DIR, lengths, string):
     return
 
 
-def plot_training(history, save_dir, title='', val=True):
+def plot_training(CONFIG, history, val=True):
     """Plot train/val loss and accuracy and save figures
 
     Args:
+        CONFIG (dict): configuration
         history (list): loss/accuracy
-        save_dir (str): path to save the figure
-        title (str, optional): figure title. Defaults to ''.
         val (bool, optional): include validation curve. Defaults to True.
     """
+    save_dir = CONFIG["SAVE_DIR"]
+    title = "%s_lr%s" % (CONFIG["model"], CONFIG["lr"])
+
     plt.plot(history["train_loss"])
     if val:
         plt.plot(history["valid_loss"])
