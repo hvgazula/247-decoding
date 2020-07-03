@@ -275,7 +275,7 @@ def return_bigram_proba(preds, n_classes):
 
     Returns:
         [type]: [description]
-    
+
     Example:
         >>> a = np.array([[1,2],[3,4]])
         >>> np.repeat(a, 2, axis=2)
@@ -405,12 +405,43 @@ def bigram_accuracy_report(CONFIG, vocab, i2w, valid_all_trg_y,
 
     print(report)
 
-    return
+
+def topk_accuracy(true_indicator, preds_df, string, word, rank):
+    """Calculate top-k accuracy given a specific rank
+
+    Args:
+        true_indicator ([type]): [description]
+        preds_df (DatFrame): [description]
+        string (str): word1/word2/bigram
+        word (str): unique class label
+        rank (int): k in top-k
+
+    Returns:
+        [type]: [description]
+    """
+    select_cols = [
+        '_'.join([string, str('{:02d}'.format(i))])
+        for i in range(1, rank + 1)
+    ]
+    y_pred = preds_df.loc[true_indicator, select_cols]
+    b = y_pred[y_pred == word].any(1)
+    num_preds = sum(true_indicator & b)
+    topkaccuracy = num_preds / sum(true_indicator)
+
+    return num_preds, topkaccuracy
 
 
-def calc_topk_accuracy(valid_preds_df, word_str=None, file_str=None):
+def calc_topk_accuracy(valid_preds_df, string=None):
+    """Calculated top-k accuracy for train/test data
 
-    if word_str == 'bigram':
+    Args:
+        valid_preds_df (DataFrame): dataframe with predictions
+        string (string, optional): word1/word2/bigram. Defaults to None.
+
+    Returns:
+        [type]: [description]
+    """
+    if string == 'bigram':
         valid_preds_df[
             'bigram'] = valid_preds_df.word1 + '_' + valid_preds_df.word2
 
@@ -421,55 +452,28 @@ def calc_topk_accuracy(valid_preds_df, word_str=None, file_str=None):
             valid_preds_df[bigram_str] = valid_preds_df[
                 word1_str] + '_' + valid_preds_df[word2_str]
 
-    unique_labels = set(valid_preds_df[word_str])
+    unique_labels = set(valid_preds_df[string])
 
     all_occur = []
     all_corr_pred1, all_corr_pred5, all_corr_pred10 = [], [], []
     all_top1_acc, all_top5_acc, all_top10_acc = [], [], []
 
     for word in unique_labels:
+        y_true = valid_preds_df[string]
+        true_indicator = y_true == word
 
-        # calculates the top1-accuracy
-        y_true = valid_preds_df[word_str]
-        select_cols = [
-            '_'.join([word_str, str('{:02d}'.format(i))])
-            for i in range(1, 1 + 1)
-        ]
-        y_pred = valid_preds_df.loc[y_true == word, select_cols]
-        num_occur = sum((y_true == word))
-        a = y_true == word
-        b = y_pred[y_pred == word].any(1)
-        correct_pred1 = sum(a & b)
-        top1_accuracy = correct_pred1 / num_occur
-
-        # calculates the top5-accuracy
-        y_true = valid_preds_df[word_str]
-        select_cols = [
-            '_'.join([word_str, str('{:02d}'.format(i))])
-            for i in range(1, 5 + 1)
-        ]
-        y_pred = valid_preds_df.loc[y_true == word, select_cols]
-        num_occur = sum((y_true == word))
-        a = y_true == word
-        b = y_pred[y_pred == word].any(1)
-        correct_pred5 = sum(a & b)
-        top5_accuracy = correct_pred5 / num_occur
-
-        # calculates the top10-accuracy
-        y_true = valid_preds_df[word_str]
-        select_cols = [
-            '_'.join([word_str, str('{:02d}'.format(i))])
-            for i in range(1, 10 + 1)
-        ]
-        y_pred = valid_preds_df.loc[y_true == word, select_cols]
-        num_occur = sum((y_true == word))
-        a = y_true == word
-        b = y_pred[y_pred == word].any(1)
-        correct_pred10 = sum(a & b)
-        top10_accuracy = correct_pred10 / num_occur
+        correct_pred1, top1_accuracy = topk_accuracy(true_indicator,
+                                                     valid_preds_df, string,
+                                                     word, 1)
+        correct_pred5, top5_accuracy = topk_accuracy(true_indicator,
+                                                     valid_preds_df, string,
+                                                     word, 5)
+        correct_pred10, top10_accuracy = topk_accuracy(true_indicator,
+                                                       valid_preds_df, string,
+                                                       word, 10)
 
         # gather all stats
-        all_occur.append(num_occur)
+        all_occur.append(sum(true_indicator))
 
         all_corr_pred1.append(correct_pred1)
         all_corr_pred5.append(correct_pred5)
@@ -501,8 +505,8 @@ def topk_accuracy_report(CONFIG, train_preds_df, valid_preds_df,
         valid_preds_df (DataFrame): test set predictions
         word_str (str, optional): file suffix. Defaults to None.
     """
-    train_df = calc_topk_accuracy(train_preds_df, word_str=word_str)
-    valid_df = calc_topk_accuracy(valid_preds_df, word_str=word_str)
+    train_df = calc_topk_accuracy(train_preds_df, string=word_str)
+    valid_df = calc_topk_accuracy(valid_preds_df, string=word_str)
 
     df = pd.merge(train_df,
                   valid_df,
