@@ -12,6 +12,8 @@ from sklearn.metrics import classification_report
 from eval_utils import evaluate_roc, evaluate_topk
 from rw_utils import tabulate_and_print
 
+# TODO: Needs total revamp of most functions in this module
+
 
 def calc_rank(x, string):
     word = x[string]
@@ -29,14 +31,12 @@ def calc_rank(x, string):
 def calc_rank1(x, string, all_preds):
     num_preds = all_preds.shape[-1] // 3
     ranks = []
-    if string == 'word1':
-        pred_ranks = torch.argsort(all_preds[:, :num_preds],
-                                   dim=1,
-                                   descending=True)
-    elif string == 'word2':
-        pred_ranks = torch.argsort(all_preds[:, num_preds:2 * num_preds],
-                                   dim=1,
-                                   descending=True)
+
+    idx = 1 if string == 'word1' else 2
+    pred_ranks = torch.argsort(all_preds[:, (idx - 1) * num_preds:idx *
+                                         num_preds],
+                               dim=1,
+                               descending=True)
 
     for i, word in enumerate(x):
         ranks.append(np.where(word == pred_ranks[i])[0][0])

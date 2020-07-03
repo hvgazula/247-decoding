@@ -62,7 +62,7 @@ def remove_duplicates(grams):
 
     Returns:
         list: of examples (tuple/list)
-    
+
     TODO: needs revamp
     """
     df = pd.DataFrame(grams)
