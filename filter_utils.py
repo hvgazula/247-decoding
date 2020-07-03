@@ -13,7 +13,7 @@ def filter_by_labels(CONFIG, signals, labels, set_min_samples):
 
     Returns:
         tuple: (filtered_examples, filtered_labels)
-    """    
+    """
     classify = CONFIG["classify"]
     label_flag = return_label_flag(labels, set_min_samples, classify=classify)
     signals = list(compress(signals, label_flag))

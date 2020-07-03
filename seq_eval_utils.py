@@ -14,7 +14,7 @@ from rw_utils import tabulate_and_print
 
 
 def translate_neural_signal(CONFIG, vocab, device, model, data_iterator):
-    """[summary]
+    """Inference mode to translate neural signals to corresponding labels
 
     Args:
         CONFIG (dict): Configuration dictionary
@@ -24,7 +24,10 @@ def translate_neural_signal(CONFIG, vocab, device, model, data_iterator):
         data_iterator (DataLoader): DataLoader
 
     Returns:
-        [type]: [description]
+        all_trg_y (torch.tensor): actual target outputs
+        topk_preds (torch.tensor): topk predictions
+        topk_preds_scores (torch.tensor): prediction scores (between 0 and 1)
+        all_preds (torch.tensor): all predictions
     """
     vocab_len = len(vocab)
     data_set_len = len(data_iterator.dataset)
@@ -142,6 +145,17 @@ def apply_rank(df, all_preds, string=None):
 
 
 def create_excel_preds(targets, top_predictions, all_preds, i2w):
+    """Map predictions to words
+
+    Args:
+        targets (torch.tensor): actual targets
+        top_predictions (torch.tensor): top k predictions from the model
+        all_preds (torch.tensor): all predictions from the model
+        i2w (dict): index to word dictionary
+
+    Returns:
+        DataFrame: targets and top predictions mapped to words
+    """
     df = pd.DataFrame(targets.numpy(), columns=['word1', 'word2', 'word3'])
     df = df.drop(columns=['word3'])
     pred_col_names = [
@@ -162,6 +176,15 @@ def create_excel_preds(targets, top_predictions, all_preds, i2w):
 
 
 def replace_words(data, i2w):
+    """Map index to word in dataframe
+
+    Args:
+        data (list): list of labels/targets
+        i2w (dict): dictionary mapping index to word
+
+    Returns:
+        DataFrame: mapped labels
+    """
     df_y_train = pd.DataFrame(data,
                               columns=['start', 'word1', 'word2', 'stop'])
     df_y_train['word1'].replace(i2w, inplace=True)
@@ -244,10 +267,20 @@ def word_wise_roc(CONFIG,
 
 
 def return_bigram_proba(preds, n_classes):
-    # EXAMPLE
-    # a = np.array([[1,2],[3,4]])
-    # np.repeat(a, 2, axis=2)
-    # np.tile(a, (1, 2))
+    """[summary]
+
+    Args:
+        preds ([type]): [description]
+        n_classes ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    
+    Example:
+        >>> a = np.array([[1,2],[3,4]])
+        >>> np.repeat(a, 2, axis=2)
+        >>> np.tile(a, (1, 2))
+    """
     softmax = nn.Softmax(dim=1)
 
     first = preds[:, n_classes * 0:n_classes * 1]
@@ -264,6 +297,15 @@ def return_bigram_proba(preds, n_classes):
 
 
 def return_bigram_vocab(vocab):
+    """Build vocabulary for bigrams
+
+    Args:
+        vocab (dict): vocabulary (original)
+
+    Returns:
+        i2w (dict): index to word
+        w2i (dict): word to index
+    """
     abc = [p for p in itertools.product(vocab.keys(), repeat=2)]
     w2i = {word: i for i, word in enumerate(abc)}
     i2w = {i: '_'.join(words) for i, words in enumerate(abc)}
@@ -451,7 +493,14 @@ def calc_topk_accuracy(valid_preds_df, word_str=None, file_str=None):
 
 def topk_accuracy_report(CONFIG, train_preds_df, valid_preds_df,
                          word_str=None):
+    """Save accuracy reports to files
 
+    Args:
+        CONFIG (dict): configuration information
+        train_preds_df (DataFrame): training set predictions
+        valid_preds_df (DataFrame): test set predictions
+        word_str (str, optional): file suffix. Defaults to None.
+    """
     train_df = calc_topk_accuracy(train_preds_df, word_str=word_str)
     valid_df = calc_topk_accuracy(valid_preds_df, word_str=word_str)
 
