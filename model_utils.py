@@ -7,6 +7,15 @@ from models import *
 
 
 def return_model(CONFIG, vocab):
+    """Build selected model
+
+    Args:
+        CONFIG (dict): configuration info
+        vocab (dict): vocabulary
+
+    Returns:
+        torch.model: PITOM/ConvNet10/MeNTALmini/MeNTAL
+    """
     # Default models and parameters
     DEFAULT_MODELS = {
         "ConvNet10": (len(vocab), ),

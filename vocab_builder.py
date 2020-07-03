@@ -5,6 +5,20 @@ from rw_utils import save_word_counter
 
 
 def create_vocab(CONFIG, y_train):
+    """Create vocabulary for the model
+
+    Args:
+        CONFIG (dict): configuration information
+        y_train (list): label data
+
+    Returns:
+        dict: frequency of words
+        int: length of vocabulary
+        dict: word to index dictionary
+        dict: index to word dictionary
+
+    TODO: Remove redundant variable vocab
+    """
     classify = CONFIG["classify"]
 
     word_freq = Counter()
@@ -40,4 +54,4 @@ def create_vocab(CONFIG, y_train):
 
     save_word_counter(CONFIG, word_freq)
 
-    return word_freq, vocab, n_classes, w2i, i2w
+    return word_freq, n_classes, w2i, i2w

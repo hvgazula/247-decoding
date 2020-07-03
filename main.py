@@ -33,9 +33,9 @@ from vocab_builder import create_vocab
 
 now = datetime.now()
 date_str = now.strftime("%A %m/%d/%Y %H:%M:%S")
-results_str = now.strftime("%Y-%m-%d-%H:%M")
+results_str = now.strftime("%Y-%m-%d-%H:%M")  # results folder prefix
 
-args = arg_parser()
+args = arg_parser()  # parse command line arguments
 CONFIG = build_config(args, results_str)
 # sys.stdout = open(CONFIG["LOG_FILE"], 'w')
 
@@ -44,7 +44,7 @@ print(f'Start Time: {date_str}')
 print(f'Setting Random seed: {CONFIG["seed"]}')
 fix_random_seed(CONFIG)
 
-classify = CONFIG['classify']
+classify = CONFIG['classify']  # if classification/seq2seq
 
 print('Building Design Matrix...')
 signals, labels = build_design_matrices(CONFIG,
@@ -74,7 +74,7 @@ print(f'Size of Training Set is: {len(X_train)}')
 print(f'Size of Test Set is: {len(X_test)}')
 
 print('Building Vocabulary')
-word2freq, word_list, n_classes, vocab, i2w = create_vocab(CONFIG, y_train)
+word2freq, n_classes, vocab, i2w = create_vocab(CONFIG, y_train)
 
 print('Transforming Labels')
 y_train = transform_labels(CONFIG, vocab, y_train)

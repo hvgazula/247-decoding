@@ -2,11 +2,26 @@ import pandas as pd
 
 
 def transform_labels(CONFIG, vocabulary, label_list):
+    """Convert labels to indices
+
+    Args:
+        CONFIG (dict): configuration information
+        vocabulary (dict): self-explanatory
+        label_list (list): labels to be transformed
+
+    Returns:
+        list (of lists):
+
+    Example:
+        >>> [['hi', 'hello']]
+                --> [['<s>', 'hi' ,'hello', '</s>']]
+                    --> [[0, 23, 19, 1]]
+    """
     classify = CONFIG["classify"]
 
     if classify:
         transformed_label_list = [vocabulary[x] for x in label_list]
-    else:
+    else:  # add start and end tokens
         start_tok = CONFIG["begin_token"]
         stop_tok = CONFIG["end_token"]
 
@@ -21,6 +36,14 @@ def transform_labels(CONFIG, vocabulary, label_list):
 
 
 def generate_unigrams(examples):
+    """Generate examples for classification
+
+    Args:
+        examples (tuple): tuples parsed from conversation
+
+    Returns:
+        list: words/labels
+    """
     my_grams = []
     for example in examples:
         if len(example[0]) > 1:
@@ -32,6 +55,16 @@ def generate_unigrams(examples):
 
 
 def remove_duplicates(grams):
+    """Remove duplicate n-grams
+
+    Args:
+        grams (tuple): n-gram tuples from conversations
+
+    Returns:
+        list: of examples (tuple/list)
+    
+    TODO: needs revamp
+    """
     df = pd.DataFrame(grams)
     df[['fw', 'sw']] = pd.DataFrame(df[0].tolist())
     df = df.drop(columns=[0]).drop_duplicates()

@@ -86,6 +86,7 @@ def evaluate_roc(predictions,
                          color='orange',
                          alpha=0.5,
                          label='Neg. Examples')
+            #TODO: check if twinx() can be used
             # axes[1].twinx().hist(h1, bins=50, alpha=0.5, label='Pos. Examples')
             axes[1].hist(h1, bins=50, alpha=0.5, label='Pos. Examples')
             axes[1].axvline(threshold, color='k')

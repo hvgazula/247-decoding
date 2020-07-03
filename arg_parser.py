@@ -23,7 +23,24 @@ def arg_parser(default_args: Optional[List] = None):
         batch-size (int): bach-size
         window-size (int): window size to consider for the word in ms
         bin-size (int): bin size in milliseconds
-        ...and so on
+        init-model:
+        no-plot (bool):
+        max-electrodes (int):
+        vocab-min-freq (int):
+        vocab-max-freq (int):
+        max-num-bins (int): upper threshold for signal length (counted as bins)
+        seed (int): random seed for reproducibility
+        shuffle (bool): shuffle samples (augmentation?)
+        no-eval (bool): train mode only or not
+        temp (float): temperature
+        tf-dmodel (int): transformer hidden units
+        tf-dff (int): tranfsformer feed forward units
+        tf-dhead (int): transformer number of heads
+        tf-nlayer (int): transformer encoder/decoder layers
+        tf-dropout (float): dropout rate
+        weight-decay (int):
+
+        #TODO: input argument to take electrode list
 '''
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, default='MeNTAL')

@@ -61,7 +61,7 @@ def return_label_flag(labels, set_min_samples, classify=True):
 
 
 def return_signal_flag(signals, set_max_seq_length):
-    """
+    """Checks if signal length is less than the set maximum length
 
     Args:
         signals (iterable): signals/features

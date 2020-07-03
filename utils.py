@@ -23,6 +23,9 @@ def read_file(fh):
 
 def fix_random_seed(CONFIG):
     """Fix random seed
+
+    Args:
+        CONFIG (dict): configuration information
     """
     SEED = CONFIG['seed']
     random.seed(SEED)
@@ -58,6 +61,18 @@ def return_conversations(CONFIG):
 
 
 def return_examples(file, delim, ex_words, vocab_str='std'):
+    """Parse conversations to return examples
+
+    Args:
+        file (str): conversation file
+        delim (str): text delimiter in the conversation file
+        ex_words (list): words to be excluded
+        vocab_str (str, optional): vocabulary to use. (Standard/SentencePiece)
+                                   defaults to 'std'.
+
+    Returns:
+        [type]: [description]
+    """
     with open(file, 'r') as fin:
         lines = map(lambda x: x.split(delim), fin)
         examples = map(
@@ -82,12 +97,24 @@ def return_examples(file, delim, ex_words, vocab_str='std'):
 
 
 def calculate_windows_params(CONFIG, gram, param_dict):
+    """Add offset to window begin, end and count bins
+
+    Args:
+        CONFIG (dict): configuration information
+        gram (tuple): tuple object of word and its corresponding signal window
+        param_dict (dict): signal parameters
+
+    Returns:
+        int: sequence length
+        int: index for window start
+        int: index for window end
+        int: number of bins in that window
+    """
     seq_length = gram[3] - gram[2]
     begin_window = gram[2] + param_dict['start_offset']
     end_window = gram[3] + param_dict['end_offset']
 
-    # calculate number of bins
-    if CONFIG["classify"]:
+    if CONFIG["classify"]:  # fixed number of bins
         half_window = param_dict["half_window"]
         bin_size = len(range(-half_window, half_window, param_dict["bin_fs"]))
     else:
@@ -99,10 +126,13 @@ def calculate_windows_params(CONFIG, gram, param_dict):
 
 def convert_ms_to_fs(CONFIG, fs=512):
     """Convert seconds to frames
-    Arguments:
-        CONFIG {dict} -- Configuration information
-    Keyword Arguments:
-        fs {int} -- Frames per second (default: {512})
+
+    Args:
+        CONFIG (dict): Configuration information
+        fs (int, optional): Frames per second. Defaults to 512.
+
+    Returns:
+        dict: parameters for extracting neural signals
     """
     window_ms = CONFIG["window_size"]
     shift_ms = CONFIG["shift"]
@@ -137,6 +167,11 @@ def test_for_bad_window(start, stop, shape, window):
 
 
 def print_cuda_usage(CONFIG):
+    """CUDA usage statistics
+
+    Args:
+        CONFIG (dict): configuration information
+    """
     print('Memory Usage:')
     for i in range(CONFIG["gpus"]):
         max_alloc = round(torch.cuda.max_memory_allocated(i) / 1024**3, 1)

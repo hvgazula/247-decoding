@@ -26,7 +26,14 @@ def figure5(SAVE_DIR, lengths, string):
 
 
 def plot_training(history, save_dir, title='', val=True):
-    '''Plot train/val loss and accuracy and save figures'''
+    """Plot train/val loss and accuracy and save figures
+
+    Args:
+        history (list): loss/accuracy
+        save_dir (str): path to save the figure
+        title (str, optional): figure title. Defaults to ''.
+        val (bool, optional): include validation curve. Defaults to True.
+    """
     plt.plot(history["train_loss"])
     if val:
         plt.plot(history["valid_loss"])
@@ -45,4 +52,4 @@ def plot_training(history, save_dir, title='', val=True):
     plt.legend(['Train', 'Test'], loc='upper left')
     plt.savefig(os.path.join(save_dir, 'accuracy.png'))
 
-    return
+    return None
