@@ -1,4 +1,4 @@
-import pandas as pd
+import operator
 
 
 def transform_labels(CONFIG, vocabulary, label_list):
@@ -62,16 +62,10 @@ def remove_duplicates(grams):
 
     Returns:
         list: of examples (tuple/list)
-
-    TODO: needs revamp
     """
-    df = pd.DataFrame(grams)
-    df[['fw', 'sw']] = pd.DataFrame(df[0].tolist())
-    df = df.drop(columns=[0]).drop_duplicates()
-    df[0] = df[['fw', 'sw']].values.tolist()
-    df = df.drop(columns=['fw', 'sw'])
-    df = df[sorted(df.columns)]
-    return list(df.to_records(index=False))
+    xkcd1 = [(*xkcd[0], *xkcd[1:]) for xkcd in grams]
+    abcd = sorted(set(xkcd1), key=operator.itemgetter(3))
+    return [(a, b, c, d) for (*a, b, c, d) in abcd]
 
 
 def generate_bigrams(examples):
