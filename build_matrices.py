@@ -34,6 +34,7 @@ def build_design_matrices(CONFIG,
     convs = return_conversations(CONFIG)
     cumsum_electrodes = list(np.cumsum(CONFIG['max_electrodes']))
     cumsum_electrodes.insert(0, 0)
+    print(cumsum_electrodes)
 
     signals, labels = [], []
     for conversation, suffix, idx, electrodes in convs[:35]:
@@ -79,8 +80,9 @@ def build_design_matrices(CONFIG,
                 continue
 
             labels.append(gram[0])
-            word_signal = np.zeros((n_bins, sum(CONFIG['max_electrodes'])),
+            word_signal = np.zeros((n_bins, CONFIG['num_features']),
                                    np.float32)
+
             for i, f in enumerate(
                     np.array_split(ecogs[start_onset:end_onset, :],
                                    n_bins,

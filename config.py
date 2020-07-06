@@ -97,9 +97,16 @@ def build_config(args, results_str):
 
     CONFIG.update(vars(args))
 
-    CONFIG["electrode_list"] = [
-        list(range(1, k + 1)) for k in CONFIG["max_electrodes"]
-    ]
+    if CONFIG["max_electrodes"]:
+        CONFIG["electrode_list"] = [
+            list(range(1, k + 1)) for k in CONFIG["max_electrodes"]
+        ]
+    else:
+        CONFIG["max_electrodes"] = [
+            len(item) for item in CONFIG["electrode_list"]
+        ]
+
+    CONFIG["num_features"] = sum(CONFIG["max_electrodes"])
 
     DIR_DICT = dict(CONV_DIRS=CONV_DIRS,
                     META_DIRS=META_DIRS,

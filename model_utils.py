@@ -19,14 +19,13 @@ def return_model(CONFIG, vocab):
     # Default models and parameters
     DEFAULT_MODELS = {
         "ConvNet10": (len(vocab), ),
-        "PITOM": (len(vocab), sum(CONFIG["max_electrodes"])),
-        "MeNTALmini":
-        (sum(CONFIG["max_electrodes"]), len(vocab), CONFIG["tf_dmodel"],
-         CONFIG["tf_nhead"], CONFIG["tf_nlayer"], CONFIG["tf_dff"],
-         CONFIG["tf_dropout"]),
-        "MeNTAL": (sum(CONFIG["max_electrodes"]), len(vocab),
-                   CONFIG["tf_dmodel"], CONFIG["tf_nhead"],
-                   CONFIG["tf_nlayer"], CONFIG["tf_dff"], CONFIG["tf_dropout"])
+        "PITOM": (len(vocab), CONFIG["num_features"]),
+        "MeNTALmini": (CONFIG["num_features"], len(vocab), CONFIG["tf_dmodel"],
+                       CONFIG["tf_nhead"], CONFIG["tf_nlayer"],
+                       CONFIG["tf_dff"], CONFIG["tf_dropout"]),
+        "MeNTAL": (CONFIG["num_features"], len(vocab), CONFIG["tf_dmodel"],
+                   CONFIG["tf_nhead"], CONFIG["tf_nlayer"], CONFIG["tf_dff"],
+                   CONFIG["tf_dropout"])
     }
 
     # Create model

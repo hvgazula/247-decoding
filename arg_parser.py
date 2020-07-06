@@ -43,8 +43,19 @@ def arg_parser(default_args: Optional[List] = None):
         #TODO: input argument to take electrode list
 '''
     parser = argparse.ArgumentParser()
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--electrode-list',
+                       nargs='*',
+                       type=int,
+                       action='append')
+    group.add_argument('--max-electrodes',
+                       nargs='*',
+                       type=int,
+                       action='append')
+
     parser.add_argument('--model', type=str, default='MeNTAL')
-    parser.add_argument('--subjects', nargs='*', default=['625'])
+    parser.add_argument('--subjects', nargs='+', type=str, action='append')
     parser.add_argument('--shift', type=int, default=0)
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--gpus', type=int, default=4)
@@ -54,7 +65,6 @@ def arg_parser(default_args: Optional[List] = None):
     parser.add_argument('--bin-size', type=int, default=50)
     parser.add_argument('--init-model', type=str, default=None)
     parser.add_argument('--no-plot', action='store_false', default=False)
-    parser.add_argument('--max-electrodes', nargs='*', type=int, default=[55])
     parser.add_argument('--vocab-min-freq', type=int, default=10)
     parser.add_argument('--vocab-max-freq', type=int, default=1000000)
     parser.add_argument('--max-num-bins', type=int, default=1000000)
@@ -74,4 +84,15 @@ def arg_parser(default_args: Optional[List] = None):
     else:
         args = parser.parse_args(default_args)
 
+    args.subjects = [item for sublist in args.subjects for item in sublist]
+    if args.electrode_list:
+        args.electrode_list = [item for item in args.electrode_list if item]
+        assert len(args.subjects) == len(
+            args.electrode_list), "Invalid Electrode List"
+    else:
+        args.max_electrodes = [
+            item for sublist in args.max_electrodes for item in sublist
+        ]
+
+    print(args)
     return args
