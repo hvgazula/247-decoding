@@ -34,10 +34,9 @@ def build_design_matrices(CONFIG,
     convs = return_conversations(CONFIG)
     cumsum_electrodes = list(np.cumsum(CONFIG['max_electrodes']))
     cumsum_electrodes.insert(0, 0)
-    print(cumsum_electrodes)
 
     signals, labels = [], []
-    for conversation, suffix, idx, electrodes in convs[:35]:
+    for conversation, suffix, idx, electrodes in convs:
 
         try:  # Check if files exists
             datum_fn = glob.glob(conversation + suffix)[0]

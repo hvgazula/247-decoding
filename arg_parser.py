@@ -94,5 +94,4 @@ def arg_parser(default_args: Optional[List] = None):
             item for sublist in args.max_electrodes for item in sublist
         ]
 
-    print(args)
     return args
