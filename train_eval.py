@@ -107,8 +107,12 @@ def train(data_iter,
             trg_pos_mask, trg_pad_mask = batch[3].to(device), batch[4].to(
                 device)
             # Perform loss computation during forward pass for parallelism
-            out, trg_y, loss = model.forward(src, trg, trg_pos_mask,
-                                             trg_pad_mask, trg_y, criterion)
+            out, trg_y = model.forward(src, trg, trg_pos_mask.tolist(),
+                                       trg_pad_mask, trg_y, criterion)
+            loss = criterion(out.contiguous().view(-1, out.size(-1)),
+                             trg_y.contiguous().view(-1))
+            loss.backward()
+            loss = loss.unsqueeze(-1)
             total_loss += loss.data.item()
             """ idx = (trg_y != pad_idx).nonzero(as_tuple=True)
             out = out[idx]
@@ -171,8 +175,11 @@ def valid(data_iter,
             trg_y = batch[2].long().to(device)
             trg_pos_mask, trg_pad_mask = batch[3].to(device), batch[4].to(
                 device)
-            out, trg_y, loss = model.forward(src, trg, trg_pos_mask,
-                                             trg_pad_mask, trg_y, criterion)
+            out, trg_y = model.forward(src, trg, trg_pos_mask.tolist(),
+                                       trg_pad_mask, trg_y, criterion)
+            loss = criterion(out.contiguous().view(-1, out.size(-1)),
+                             trg_y.contiguous().view(-1))
+            loss = loss.unsqueeze(-1)
             total_loss += loss.data.item()
             """ idx = (trg_y != pad_idx).nonzero(as_tuple=True)
             out = out[idx]

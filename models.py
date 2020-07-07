@@ -174,11 +174,11 @@ class MeNTALEncoderLayer(nn.Module):
 class MeNTALmini(nn.Module):
     """ A transformer encoder-classifier model.
     Args:
-        num_electrodes: number of channels in electrode data (default=64).
-        num_classes: number of tokens in target vocabulary (default=64).
-        d_model: number of expected input features (default=512).
-        nhead: number of heads in the multiheadattention models (default=8).
-        num_encoder_layers: number of sub-encoder-layers in encoder (default=6).
+        num_electrodes: # of channels in electrode data (default=64).
+        num_classes: # of tokens in target vocabulary (default=64).
+        d_model: # of expected input features (default=512).
+        nhead: # of heads in the multiheadattention models (default=8).
+        num_encoder_layers: # of sub-encoder-layers in encoder (default=6).
         dim_feedforward: dimension of feedforward network model (default=2048).
         dropout: dropout value (default=0.1).
         activation: activation function used in encoder (default=relu).
@@ -245,11 +245,11 @@ class MeNTALmini(nn.Module):
 class MeNTAL(nn.Module):
     """ A transformer encoder-decoder model.
     Args:
-        num_electrodes: number of channels in electrode data (default=64).
-        num_tokens: number of tokens in target vocabulary (default=64).
-        d_model: number of expected input features (default=512).
-        nhead: number of heads in the multiheadattention models (default=8).
-        num_encoder_layers: number of sub-encoder-layers in encoder (default=6).
+        num_electrodes: # of channels in electrode data (default=64).
+        num_tokens: # of tokens in target vocabulary (default=64).
+        d_model: # of expected input features (default=512).
+        nhead: # of heads in the multiheadattention models (default=8).
+        num_encoder_layers: # of sub-encoder-layers in encoder (default=6).
         dim_feedforward: dimension of feedforward network model (default=2048).
         dropout: dropout value (default=0.1).
         activation: activation function used in encoder (default=relu).
@@ -358,17 +358,11 @@ class MeNTAL(nn.Module):
                    nn.DataParallel batch splitting to work)
         """
 
+        trg_pos_mask = torch.tensor(trg_pos_mask).to(src.device)
         memory = self.encode(src)
         output = self.decode(memory, trg, trg_pos_mask, trg_pad_mask)
 
-        # Perform loss computation and backward pass in forward call
-        # for parallelism
-        loss = criterion(output.contiguous().view(-1, output.size(-1)),
-                         trg_y.contiguous().view(-1))
-        if self.training:
-            loss.backward()
-
-        return output, trg_y, loss.unsqueeze(-1)
+        return output, trg_y
 
     def _reset_parameters(self):
         """ Initialize model parameters. """
