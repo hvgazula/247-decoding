@@ -2,7 +2,7 @@ from collections import Counter, OrderedDict
 from itertools import chain
 
 from rw_utils import save_word_counter
-
+import sys
 
 def create_vocab(CONFIG, y_train):
     """Create vocabulary for the model
@@ -17,13 +17,16 @@ def create_vocab(CONFIG, y_train):
         dict: word to index dictionary
         dict: index to word dictionary
 
-    TODO: Remove redundant variable vocab
+    Example:
+        >>> a = [['w11', 'w21'], ['w12', 'w22'], ['w13', 'w23']]
+        >>> print(chain.from_iterable(a))
+        >>> ['w11', 'w21', 'w12', 'w22', 'w11', 'w23']
     """
     classify = CONFIG["classify"]
 
     word_freq = Counter()
     min_freq = CONFIG["vocab_min_freq"]
-
+    
     word_freq.update(y_train if classify else chain.from_iterable(y_train))
 
     tokens_to_add = [
