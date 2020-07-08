@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=MeNTAL
+#SBATCH --job-name=PITOM
 #SBATCH --output=./slurm_logs/%x-%j.out
 #SBATCH --error=./slurm_logs/%x-%j.err
 #SBATCH --nodes=1 #nodes
@@ -7,7 +7,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 #SBATCH --time=0-02:00:00
-#SBATCH --gres=gpu:4
+#SBATCH --gres=gpu:2
 #SBATCH --mail-type=begin
 #SBATCH --mail-type=fail
 #SBATCH --mail-type=end
@@ -17,6 +17,13 @@ module purge
 module load anaconda3
 # module load cudnn7 cudatoolkit/10.1
 conda activate torch-env
+
+if [[ -v $SLURM_TASK_ARRAY_ID ]]
+then
+    SEED=$SLURM_TASK_ARRAY_ID
+else
+    SEED=1234
+fi
 
 # Run tasks in parallel
 # ConvNet10_${lr}_wd${weight_decay}_vmf${vocab_min_freq}
@@ -38,7 +45,7 @@ for vocab_min_freq in 10; do
                                 --weight-decay ${weight_decay} \
                                 --vocab-min-freq ${vocab_min_freq} \
                                 --vocab-max-freq ${vocab_max_freq} \
-                                --seed $SLURM_ARRAY_TASK_ID \
+                                --seed $SEED \
                                 --max-num-bins ${max_num_bins} &
             done;
           done;
