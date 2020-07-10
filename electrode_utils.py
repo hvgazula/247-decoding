@@ -5,7 +5,6 @@ import numpy as np
 from scipy.io import loadmat
 
 
-# Get electrode date helper
 def get_electrode(elec_id):
     """Extract neural data from mat files
 
@@ -39,11 +38,12 @@ def return_electrode_array(conv, elect):
         ecogs = list(
             filter(lambda x: x is not None, pool.map(get_electrode, elec_ids)))
 
-    ecogs = np.asarray(ecogs)
-    ecogs = (ecogs - ecogs.mean(axis=1).reshape(
-        ecogs.shape[0], 1)) / ecogs.std(axis=1).reshape(ecogs.shape[0], 1)
-    ecogs = ecogs.T
-
+    ecogs = standardize_matrix(ecogs)
     assert (ecogs.ndim == 2 and ecogs.shape[1] == len(elect))
 
     return ecogs
+
+
+def standardize_matrix(ecogs):
+    ecogs = np.asarray(ecogs).T
+    return (ecogs - np.mean(ecogs, axis=0)) / np.std(ecogs, axis=0)
