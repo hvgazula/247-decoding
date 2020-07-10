@@ -88,10 +88,14 @@ def arg_parser(default_args: Optional[List] = None):
     if args.electrode_list:
         args.electrode_list = [item for item in args.electrode_list if item]
         assert len(args.subjects) == len(
-            args.electrode_list), "Invalid Electrode List"
+            args.electrode_list
+        ), "Number of electrode_list calls must match number of subjects"
     else:
         args.max_electrodes = [
             item for sublist in args.max_electrodes for item in sublist
         ]
+        assert len(args.subjects) == len(
+            args.max_electrodes
+        ), "Number of items for max-electrodes must match number of subjects"
 
     return args
