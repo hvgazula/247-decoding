@@ -8,6 +8,7 @@ from datetime import datetime
 from pprint import pprint
 
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.utils.data as data
@@ -23,7 +24,7 @@ from filter_utils import filter_by_labels, filter_by_signals
 from gram_utils import transform_labels
 from model_utils import return_model
 from plot_utils import figure5, plot_training
-from rw_utils import bigram_counts_to_csv, format_dataframe, print_model
+from rw_utils import format_dataframe, print_model
 from seq_eval_utils import (calc_bigram_train_freqs, create_excel_preds,
                             return_bigram_proba, return_bigram_vocab,
                             save_bigram_counts, translate_neural_signal,
@@ -38,7 +39,7 @@ results_str = now.strftime("%Y-%m-%d-%H:%M")
 
 args = arg_parser()
 CONFIG = build_config(args, results_str)
-sys.stdout = open(CONFIG["LOG_FILE"], 'w')
+# sys.stdout = open(CONFIG["LOG_FILE"], 'w')
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print(f'Start Time: {date_str}')
@@ -60,18 +61,29 @@ signals, labels = filter_by_signals(signals, labels, 75)
 assert len(signals) == len(labels), "Size Mismatch: Filter 1"
 print(f'Number of Examples (Post Signal Length Cutoff): {len(signals)}')
 
-signals, labels = filter_by_labels(CONFIG, signals, labels, 20)
+signals, labels = filter_by_labels(CONFIG, signals, labels, 15)
 assert len(signals) == len(labels), "Size Mismatch: Filter 2"
 print(f'Number of Examples (Post Class Size Cutoff): {len(signals)}')
 
-X_train, X_test, y_train, y_test = train_test_split(
-    signals,
-    labels,
-    stratify=labels,
-    test_size=0.30,
-    random_state=CONFIG["seed"])
+# code starts for oos-analysis
+new_df = pd.DataFrame(labels, columns=['word1', 'word2'])
+new_df1 = new_df.groupby(['word1', 'word2']).size().reset_index(name='count')
 
-# bigram_counts_to_csv(CONFIG, [labels, y_train, y_test], data_str='mixed')
+new_df1["word1_in_2"] = new_df1['word1'].apply(
+    lambda x: int(x in new_df['word2'].values))
+new_df1["word2_in_1"] = new_df1['word2'].apply(
+    lambda x: int(x in new_df['word1'].values))
+select_df = new_df1[(new_df1.word1_in_2 == 1) & (new_df1.word2_in_1 == 1)]
+
+train_labels, test_labels = train_test_split(select_df[['word1', 'word2']])
+train_data = [(signal, label) for signal, label in zip(signals, labels)
+              if label in train_labels.to_numpy().tolist()]
+test_data = [(signal, label) for signal, label in zip(signals, labels)
+             if label in test_labels.to_numpy().tolist()]
+
+X_train, y_train = zip(*train_data)
+X_test, y_test = zip(*test_data)
+# code ends for oos-analysis
 
 print(f'Size of Training Set is: {len(X_train)}')
 print(f'Size of Test Set is: {len(X_test)}')
