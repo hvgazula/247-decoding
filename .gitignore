@@ -129,6 +129,6 @@ dmypy.json
 .pyre/
 
 #custom
-Results
+Results*
 slurm_logs
 slurm_scripts
