@@ -33,7 +33,7 @@ from vocab_builder import create_vocab
 
 now = datetime.now()
 date_str = now.strftime("%A %m/%d/%Y %H:%M:%S")
-results_str = now.strftime("%Y-%m-%d-%H:%M")  # results folder prefix
+results_str = now.strftime("%Y%m%d%H%M")  # results folder prefix
 
 args = arg_parser()  # parse command line arguments
 CONFIG = build_config(args, results_str)

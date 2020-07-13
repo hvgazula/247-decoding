@@ -131,3 +131,4 @@ dmypy.json
 #custom
 Results
 slurm_logs
+slurm_scripts
