@@ -427,7 +427,9 @@ def calc_topk_accuracy(valid_preds_df, string=None):
     return df
 
 
-def topk_accuracy_report(CONFIG, train_preds_df, valid_preds_df,
+def topk_accuracy_report(CONFIG,
+                         train_preds_df,
+                         valid_preds_df,
                          word_str=None):
     """Save accuracy reports to files
 
@@ -439,6 +441,13 @@ def topk_accuracy_report(CONFIG, train_preds_df, valid_preds_df,
     """
     train_df = calc_topk_accuracy(train_preds_df, string=word_str)
     valid_df = calc_topk_accuracy(valid_preds_df, string=word_str)
+
+    a = max(valid_df["Size"])
+    b = sum(valid_df["Size"])
+    freq_word = valid_df.loc[pd.to_numeric(valid_df["Size"]).idxmax(), 'Class']
+
+    print(f"Most frequent {word_str} is: {freq_word}")
+    print(f"Chance Level for {word_str} is: {a}/{b} ({a/b})")
 
     df = pd.merge(train_df,
                   valid_df,
