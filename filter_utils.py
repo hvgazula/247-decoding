@@ -4,6 +4,7 @@ from itertools import compress
 
 def filter_by_labels(CONFIG, signals, labels, set_min_samples):
     """Return filtered labels and corresponding features
+    count(each unique label) >= set_min_samples
 
     Args:
         CONFIG (dict): configuration information
@@ -23,6 +24,8 @@ def filter_by_labels(CONFIG, signals, labels, set_min_samples):
 
 def filter_by_signals(signals, labels, set_max_seq_length):
     """Return filtered signals and corresponding labels
+    len(signal) >= set_max_seq_length
+    # TODO: set_max_Seq_length * bin_size / 512 fps = (max) secs
 
     Args:
         CONFIG (dict): configuration information

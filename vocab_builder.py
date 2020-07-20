@@ -2,7 +2,7 @@ from collections import Counter, OrderedDict
 from itertools import chain
 
 from rw_utils import save_word_counter
-import sys
+
 
 def create_vocab(CONFIG, y_train):
     """Create vocabulary for the model
