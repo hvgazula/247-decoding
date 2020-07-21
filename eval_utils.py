@@ -247,11 +247,11 @@ def evaluate_topk(predictions,
             fout.write(line + '\n')
             line = 'Top-10\t%.4f %% (%.2f %%)' % (top10, chances[9])
             fout.write(line + '\n')
-            line = 'Top1 #Unique: %3d' % len(top1_uw)
+            line = 'Top-1 #Unique: %3d' % len(top1_uw)
             fout.write(line + '\n')
-            line = 'Top1 #Unique: %3d' % len(top5_uw)
+            line = 'Top-5 #Unique: %3d' % len(top5_uw)
             fout.write(line + '\n')
-            line = 'Top1 #Unique: %3d' % len(top10_uw)
+            line = 'Top-10 #Unique: %3d' % len(top10_uw)
             fout.write(line + '\n')
 
     # Write to file
