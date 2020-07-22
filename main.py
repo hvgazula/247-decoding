@@ -1,5 +1,4 @@
 import math
-import os
 import sys
 import time
 from collections import Counter
@@ -320,9 +319,6 @@ else:
                  min_train=10,
                  tokens_to_remove=remove_tokens)
 
-    sys.stdout = open(
-        os.path.join(CONFIG["SAVE_DIR"], 'bigram_classification_report.csv'),
-        'w')
     bigram_accuracy_report(CONFIG, vocab, i2w, valid_all_trg_y,
                            valid_all_preds)
 

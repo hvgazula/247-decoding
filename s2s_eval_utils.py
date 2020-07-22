@@ -333,9 +333,13 @@ def bigram_accuracy_report(CONFIG, vocab, i2w, valid_all_trg_y,
                                    pred_df.join_output,
                                    labels=labels,
                                    zero_division=0,
-                                   output_dict=0)
+                                   output_dict=1)
 
-    print(report)
+    report_df = pd.DataFrame(report).transpose()
+    tabulate_and_print(CONFIG,
+                       report_df,
+                       'bigram_accuracy_report.txt',
+                       showindex=True)
 
 
 def topk_accuracy(true_indicator, preds_df, string, word, rank):

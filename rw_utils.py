@@ -73,7 +73,7 @@ def print_model(CONFIG, model):
         print(model, file=file_h)
 
 
-def tabulate_and_print(CONFIG, data_frame, file_name):
+def tabulate_and_print(CONFIG, data_frame, file_name, showindex=False):
     """Convert a dataframe into table and print to file
 
     Args:
@@ -83,7 +83,7 @@ def tabulate_and_print(CONFIG, data_frame, file_name):
     """
     mystrn = tabulate(data_frame,
                       headers=data_frame.columns,
-                      showindex='False',
+                      showindex=showindex,
                       tablefmt='plain',
                       floatfmt=".4f",
                       numalign='center',
