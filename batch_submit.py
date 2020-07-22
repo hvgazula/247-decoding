@@ -1,4 +1,7 @@
 import os
+import sys
+
+from itertools import product
 
 
 def create_script(job_name_str, s_list):
@@ -58,13 +61,13 @@ def create_script(job_name_str, s_list):
 # temp = [0.9, 0.95, 0.96, 0.97, 0.98, 0.99, 0.995]
 
 model = ["MeNTAL"]
-subjects = [625]
+subjects = [625, 676]
 max_electrodes = [55]
 shift = [0]
-lr = 1e-4
-gpus = 2
-epochs = 100
-batch_size = 120
+lr = [1e-4]
+gpus = [2]
+epochs = [100]
+batch_size = [120]
 bin_size = [50]
 tf_weight_decay = [0.01]
 tf_dropout = tf_weight_decay
@@ -74,54 +77,29 @@ tf_dmodel = [128]
 tf_dff = [128]
 temp = [0.9]
 
-str_lr = '--lr ' + str(lr)
-str_gpu = '--gpus ' + str(gpus)
-str_epochs = '--epochs ' + str(epochs)
-str_batch_size = '--batch-size ' + str(batch_size)
+somelists = [
+    model, subjects, lr, gpus, epochs, batch_size, max_electrodes, shift,
+    bin_size, tf_weight_decay, tf_dropout, tf_nlayer, tf_nhead, temp
+]
 
-# TODO: Poorly written for loops, needs refactoring
-# TODO: Code to run for combination of subjects
+stringlists = [
+    '--model', '--subjects', '--lr', '--gpus', '--epochs', '--batch-size',
+    '--max-electrodes', '--shift', '--bin-size', '--weight-decay',
+    '--tf-dropout', '--tf-nlayer', '--tf-nhead', '--temp'
+]
+
+a = product(*somelists)
+
+#TODO: write condition to prevent cross-over subjects (625, 64), (676, 55)
 count = 0
-s = [str_lr, str_gpu, str_epochs, str_batch_size]
-for a in model:
-    s1 = '--model ' + str(a)
-    for b in subjects:
-        s2 = '--subjects ' + str(b)
-        for c in max_electrodes:
-            s3 = '--max-electrodes ' + str(c)
-            for d in shift:
-                s4 = '--shift ' + str(d)
-                for e in bin_size:
-                    s5 = '--bin-size ' + str(e)
-                    for f in tf_weight_decay:
-                        s6 = '--weight-decay ' + str(f)
-                        for g in tf_dropout:
-                            s7 = '--tf-dropout ' + str(g)
-                            for h in tf_nlayer:
-                                s8 = '--tf-nlayer ' + str(h)
-                                for i in tf_nhead:
-                                    s9 = '--tf-nhead ' + str(i)
-                                    for j in temp:
-                                        s10 = '--temp ' + str(j)
-                                        if b == 625 and c == 64:
-                                            continue
-                                        if b == 676 and c == 55:
-                                            continue
-
-                                        job_name = [
-                                            a, b, c, d, e, f, g, h, i, j
-                                        ]
-
-                                        job_name_str = '_'.join(
-                                            [str(item) for item in job_name])
-
-                                        final_s = [
-                                            *s, s1, s2, s3, s4, s5, s6, s7, s8,
-                                            s9, s10
-                                        ]
-                                        file_name = create_script(
-                                            job_name_str, final_s)
-                                        os.system(f'sbatch {file_name}')
-                                        count = count + 1
+for element in a:
+    print(list(element), stringlists)
+    final_s = [
+        ' '.join(str(f) for f in tup) for tup in zip(stringlists, element)
+    ]
+    job_name_str = '_'.join([str(item) for item in element])
+    file_name = create_script(job_name_str, final_s)
+    os.system(f'sbatch {file_name}')
+    count = count + 1
 
 print(f"Number of slurm scripts generated is: {count}")
