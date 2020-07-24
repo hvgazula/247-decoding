@@ -10,7 +10,7 @@ import torch.nn as nn
 from sklearn.metrics import classification_report
 
 from eval_utils import evaluate_roc, evaluate_topk
-from rw_utils import tabulate_and_print
+from rw_utils import tabulate_and_print, write_list_to_file
 
 # TODO: Needs total revamp of most functions in this module
 
@@ -465,7 +465,7 @@ def topk_accuracy_report(CONFIG,
 
 def concatenate_bigrams(CONFIG, valid_all_trg_y, valid_all_preds, vocab, i2w,
                         bigram_w2i, true, n_classes):
-
+    # concatenated according to ariel's recommendation
     a, b = valid_all_trg_y[:, :2], valid_all_preds[:, :2 * len(vocab)]
 
     word1 = a[:, 0]
@@ -510,5 +510,8 @@ def concatenate_bigrams(CONFIG, valid_all_trg_y, valid_all_preds, vocab, i2w,
             position = bigram_w2i[(word1_top_pred_df.loc[idx_in, column],
                                    word2_top_pred_df.loc[idx_in, column])]
             bigram_predictions[idx_in, position] = k[idx_in, idx_out]
+
+    uniq_preds = pred_df['bigram_01'].unique().tolist()
+    write_list_to_file(CONFIG, uniq_preds, 'bigram_uniq_preds.csv')
 
     return bigram_predictions

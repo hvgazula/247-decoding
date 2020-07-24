@@ -20,7 +20,7 @@ from filter_utils import filter_by_labels, filter_by_signals
 from gram_utils import transform_labels
 from model_utils import return_model
 from plot_utils import figure5, plot_training
-from rw_utils import print_model, tabulate_and_print
+from rw_utils import print_model, tabulate_and_print, write_list_to_file
 from s2s_eval_utils import (bigram_accuracy_report, calc_bigram_train_freqs,
                             concatenate_bigrams, create_excel_preds,
                             return_bigram_proba, return_bigram_vocab,
@@ -37,7 +37,7 @@ results_str = start_time.strftime("%Y%m%d%H%M")  # results folder prefix
 
 args = arg_parser()  # parse command line arguments
 CONFIG = build_config(args, results_str)
-sys.stdout = open(CONFIG["LOG_FILE"], 'w')
+# sys.stdout = open(CONFIG["LOG_FILE"], 'w')
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print(f'Start Time: {date_str}')
@@ -218,6 +218,12 @@ else:
                                         valid_all_preds, i2w)
     train_preds_df = create_excel_preds(train_all_trg_y, train_topk_preds,
                                         train_all_preds, i2w)
+
+    w1_uniq_preds = valid_preds_df['word1_01'].unique().tolist()
+    w2_uniq_preds = valid_preds_df['word2_01'].unique().tolist()
+
+    write_list_to_file(CONFIG, w1_uniq_preds, 'word1_uniq_preds.csv')
+    write_list_to_file(CONFIG, w2_uniq_preds, 'word2_uniq_preds.csv')
 
     tabulate_and_print(CONFIG, valid_preds_df,
                        'Test_Set_Word-level_Predictions.csv')

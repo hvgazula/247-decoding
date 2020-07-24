@@ -1,5 +1,7 @@
+import csv
 import os
 
+import numpy as np
 import pandas as pd
 from tabulate import tabulate
 
@@ -73,7 +75,7 @@ def print_model(CONFIG, model):
         print(model, file=file_h)
 
 
-def tabulate_and_print(CONFIG, data_frame, file_name, showindex=False):
+def tabulate_and_print(CONFIG, data, file_name, showindex=False):
     """Convert a dataframe into table and print to file
 
     Args:
@@ -81,14 +83,29 @@ def tabulate_and_print(CONFIG, data_frame, file_name, showindex=False):
         data_frame (DataFrame): dataframe object to tabulate
         file_name (str): output filename
     """
-    mystrn = tabulate(data_frame,
-                      headers=data_frame.columns,
-                      showindex=showindex,
-                      tablefmt='plain',
-                      floatfmt=".4f",
-                      numalign='center',
-                      stralign='center',
-                      colalign=("center", ))
+    args_dict = dict(tablefmt='plain',
+                     floatfmt=".4f",
+                     numalign='center',
+                     stralign='center',
+                     colalign=("center", ))
+
+    if isinstance(data, pd.DataFrame):
+        mystrn = tabulate(data,
+                          headers=data.columns,
+                          showindex=showindex,
+                          **args_dict)
+    elif isinstance(data, (np.ndarray, np.generic)):
+        mystrn = tabulate(data, **args_dict)
+    elif isinstance(data, list):
+        mystrn = tabulate(data, **args_dict)
+    else:
+        print('Unsupported datatype')
 
     with open(os.path.join(CONFIG["SAVE_DIR"], file_name), 'w') as f:
         f.writelines(mystrn)
+
+
+def write_list_to_file(CONFIG, data_list, file_name):
+    with open(os.path.join(CONFIG["SAVE_DIR"], file_name), 'w') as myfile:
+        wr = csv.writer(myfile, delimiter='\n')
+        wr.writerow(data_list)
