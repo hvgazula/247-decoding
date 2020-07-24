@@ -1,4 +1,5 @@
 import math
+import os
 import sys
 import time
 from collections import Counter
@@ -25,7 +26,7 @@ from s2s_eval_utils import (bigram_accuracy_report, calc_bigram_train_freqs,
                             concatenate_bigrams, create_excel_preds,
                             return_bigram_proba, return_bigram_vocab,
                             save_bigram_counts, topk_accuracy_report,
-                            word_wise_roc)
+                            uniq_preds_correct, word_wise_roc)
 from s2s_inference import classify_neural_signal, translate_neural_signal
 from train_eval import train, valid
 from utils import fix_random_seed, print_cuda_usage
@@ -219,11 +220,31 @@ else:
     train_preds_df = create_excel_preds(train_all_trg_y, train_topk_preds,
                                         train_all_preds, i2w)
 
-    w1_uniq_preds = valid_preds_df['word1_01'].unique().tolist()
-    w2_uniq_preds = valid_preds_df['word2_01'].unique().tolist()
+    w1_uniq_inputs = valid_preds_df['word1'].unique().tolist()
+    w2_uniq_inputs = valid_preds_df['word2'].unique().tolist()
+    w1_uniq_outputs = valid_preds_df['word1_01'].unique().tolist()
+    w2_uniq_outputs = valid_preds_df['word2_01'].unique().tolist()
 
-    write_list_to_file(CONFIG, w1_uniq_preds, 'word1_uniq_preds.csv')
-    write_list_to_file(CONFIG, w2_uniq_preds, 'word2_uniq_preds.csv')
+    write_list_to_file(CONFIG, w1_uniq_outputs, 'word1_uniq_preds.csv')
+    write_list_to_file(CONFIG, w2_uniq_outputs, 'word2_uniq_preds.csv')
+
+    corr_preds1, length1 = uniq_preds_correct(CONFIG, valid_preds_df, 'word1')
+    corr_preds2, length2 = uniq_preds_correct(CONFIG, valid_preds_df, 'word2')
+
+    write_list_to_file(CONFIG, corr_preds1, 'word1_uniq_preds.csv')
+    write_list_to_file(CONFIG, corr_preds2, 'word2_uniq_preds.csv')
+
+    with open(os.path.join(CONFIG["SAVE_DIR"], 'word1_uniq_preds.csv'),
+              'a+') as fh:
+        fh.write(f'Number of unique inputs: {len(w1_uniq_inputs)}\n')
+        fh.write(f'Number of unique outputs: {len(w1_uniq_outputs)}\n')
+        fh.write(f'Number of unique outputs (which are correct): {length1}\n')
+
+    with open(os.path.join(CONFIG["SAVE_DIR"], 'word2_uniq_preds.csv'),
+              'a+') as fh:
+        fh.write(f'Number of unique inputs: {len(w2_uniq_inputs)}\n')
+        fh.write(f'Number of unique outputs: {len(w2_uniq_outputs)}\n')
+        fh.write(f'Number of unique outputs (which are correct): {length2}\n')
 
     tabulate_and_print(CONFIG, valid_preds_df,
                        'Test_Set_Word-level_Predictions.csv')

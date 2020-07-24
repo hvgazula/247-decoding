@@ -106,6 +106,7 @@ def tabulate_and_print(CONFIG, data, file_name, showindex=False):
 
 
 def write_list_to_file(CONFIG, data_list, file_name):
-    with open(os.path.join(CONFIG["SAVE_DIR"], file_name), 'w') as myfile:
+    with open(os.path.join(CONFIG["SAVE_DIR"], file_name), 'a+') as myfile:
         wr = csv.writer(myfile, delimiter='\n')
         wr.writerow(data_list)
+        wr.writerow('\n')
