@@ -31,9 +31,9 @@ from train_eval import train, valid
 from utils import fix_random_seed, print_cuda_usage
 from vocab_builder import create_vocab
 
-start = datetime.now()
-date_str = start.strftime("%A %m/%d/%Y %H:%M:%S")
-results_str = start.strftime("%Y%m%d%H%M")  # results folder prefix
+start_time = datetime.now()
+date_str = start_time.strftime("%A %m/%d/%Y %H:%M:%S")
+results_str = start_time.strftime("%Y%m%d%H%M")  # results folder prefix
 
 args = arg_parser()  # parse command line arguments
 CONFIG = build_config(args, results_str)
@@ -348,5 +348,5 @@ else:
                   suffix='bigramc',
                   tokens_to_remove=remove_tokens)
 
-end = datetime.now()
-print(f'Total runtime: {end - start} (HH:MM:SS)')
+end_time = datetime.now()
+print(f'Total runtime: {end_time - start_time} (HH:MM:SS)')
