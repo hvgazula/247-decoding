@@ -26,7 +26,7 @@ from s2s_eval_utils import (bigram_accuracy_report, calc_bigram_train_freqs,
                             return_bigram_vocab, save_bigram_counts,
                             topk_accuracy_report, word_wise_roc,
                             concatenate_bigrams)
-from s2s_inference import translate_neural_signal
+from s2s_inference import classify_neural_signal, translate_neural_signal
 from train_eval import train, valid
 from utils import fix_random_seed, print_cuda_usage
 from vocab_builder import create_vocab
@@ -175,35 +175,11 @@ print('Printing Loss Curves')
 plot_training(CONFIG, history)
 
 print("Evaluating predictions on test set")
-# Load best model
-best_model = torch.load(model_name)
+best_model = torch.load(model_name)  # Load best model
 
 if classify:
-    print("\nEvaluating predictions on test set")
-    # Load best model
-    model = torch.load(model_name)
-    if args.gpus:
-        if args.gpus > 1:
-            model = nn.DataParallel(model)
-        model.to(DEVICE)
-
-    start, end = 0, 0
-    softmax = nn.Softmax(dim=1)
-    all_preds = np.zeros((len(X_test), n_classes), dtype=np.float32)
-    print('Allocating', np.prod(all_preds.shape) * 5 / 1e9, 'GB')
-
-    # Calculate all predictions on test set
-    with torch.no_grad():
-        model.eval()
-        for batch in valid_dl:
-            src, trg = batch[0].to(DEVICE), batch[1].to(DEVICE,
-                                                        dtype=torch.long)
-            end = start + src.size(0)
-            out = softmax(model(src))
-            all_preds[start:end, :] = out.cpu()
-            start = end
-
-    print("Calculated predictions")
+    all_preds = classify_neural_signal(CONFIG, vocab, DEVICE, best_model,
+                                       valid_dl)
 
     # Make categorical
     n_examples = len(y_test)
@@ -350,4 +326,5 @@ else:
                   tokens_to_remove=remove_tokens)
 
 end_time = datetime.now()
+print(f'End Time: {end_time.strftime("%A %m/%d/%Y %H:%M:%S")}')
 print(f'Total runtime: {end_time - start_time} (HH:MM:SS)')
