@@ -80,25 +80,27 @@ shift = [0]
 bin_size = [50]
 tf_weight_decay = [0.01]
 tf_dropout = tf_weight_decay
-tf_nlayer = [3]
-tf_nhead = [4]
+tf_nlayer = [3, 6]
+tf_nhead = [4, 8]
 tf_dmodel = [128]
-tf_dff = [128]
+tf_dff = [256]
 temp = [0.9]
 lr = [1e-4]
 gpus = [2]
 epochs = [100]
-batch_size = [120]
+batch_size = [240]
 
 arg_values = [
     model, subjects, max_electrodes, shift, bin_size, tf_weight_decay,
-    tf_dropout, tf_nlayer, tf_nhead, temp, lr, gpus, epochs, batch_size
+    tf_dropout, tf_nlayer, tf_nhead, tf_dmodel, tf_dff, temp, lr, gpus, epochs,
+    batch_size
 ]
 
 arg_strings = [
     '--model', '--subjects', '--max-electrodes', '--shift', '--bin-size',
-    '--weight-decay', '--tf-dropout', '--tf-nlayer', '--tf-nhead', '--temp',
-    '--lr', '--gpus', '--epochs', '--batch-size'
+    '--weight-decay', '--tf-dropout', '--tf-nlayer', '--tf-nhead',
+    '--tf-dmodel', '--tf-dff', '--temp', '--lr', '--gpus', '--epochs',
+    '--batch-size'
 ]
 
 args_dict = dict(zip(arg_strings, arg_values))

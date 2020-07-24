@@ -350,7 +350,7 @@ else:
     pred_df = pred_df.replace(i2w)
     pred_df['bigram'] = pred_df.word1 + '_' + pred_df.word2
 
-    k = word1_top_pred_score + word1_top_pred_score
+    k = word1_top_pred_score + word2_top_pred_score
     k = k.numpy().T
     kmin = np.min(k, axis=0)
     ksum = np.sum(k - kmin, axis=0)
