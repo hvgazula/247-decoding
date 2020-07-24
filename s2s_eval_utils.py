@@ -461,3 +461,54 @@ def topk_accuracy_report(CONFIG,
 
     file_name = '_'.join(['topk_acc_report', word_str]) + '.csv'
     tabulate_and_print(CONFIG, df, file_name)
+
+
+def concatenate_bigrams(CONFIG, valid_all_trg_y, valid_all_preds, vocab, i2w,
+                        bigram_w2i, true, n_classes):
+
+    a, b = valid_all_trg_y[:, :2], valid_all_preds[:, :2 * len(vocab)]
+
+    word1 = a[:, 0]
+    word2 = a[:, 1]
+
+    word1_scores = b[:, :len(vocab)]
+    word2_scores = b[:, len(vocab):2 * len(vocab)]
+    word1_top_pred_score, word1_top_pred_idx = torch.sort(word1_scores,
+                                                          dim=1,
+                                                          descending=True)
+    word2_top_pred_score, word2_top_pred_idx = torch.sort(word2_scores,
+                                                          dim=1,
+                                                          descending=True)
+
+    word1_top_pred_df = pd.DataFrame(word1_top_pred_idx.numpy()).replace(i2w)
+    word2_top_pred_df = pd.DataFrame(word2_top_pred_idx.numpy()).replace(i2w)
+
+    pred_df = pd.DataFrame({'word1': [], 'word2': []})
+
+    pred_df['word1'] = word1
+    pred_df['word2'] = word2
+
+    pred_df = pred_df.replace(i2w)
+    pred_df['bigram'] = pred_df.word1 + '_' + pred_df.word2
+
+    k = word1_top_pred_score + word2_top_pred_score
+    k = k.numpy().T
+    kmin = np.min(k, axis=0)
+    ksum = np.sum(k - kmin, axis=0)
+    k = (k - kmin) / ksum
+    k = k.T
+
+    bigram_predictions = np.zeros((true.size, n_classes**2))
+
+    pred_df = pred_df.drop(['word1', 'word2'], axis=1)
+    for idx_out, column in enumerate(word1_top_pred_df.columns):
+        new_col = 'bigram_' + str(column + 1).zfill(2)
+        pred_df[new_col] = word1_top_pred_df[column].str.cat(
+            word2_top_pred_df[column], sep="_")
+
+        for idx_in, element in enumerate(pred_df[new_col]):
+            position = bigram_w2i[(word1_top_pred_df.loc[idx_in, column],
+                                   word2_top_pred_df.loc[idx_in, column])]
+            bigram_predictions[idx_in, position] = k[idx_in, idx_out]
+
+    return bigram_predictions

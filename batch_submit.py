@@ -1,6 +1,8 @@
 import os
 from itertools import product
 
+ALLOCATE_GPUS = 4
+
 
 def contains_exclude_dict(superitem, exclude):
     for subitem in exclude:
@@ -31,7 +33,7 @@ def create_script(job_name_str, s_list):
         fh.write("#SBATCH --cpus-per-task=4\n")
         fh.write("#SBATCH --mem=16G\n")
         fh.write("#SBATCH --time=0-02:00:00\n")
-        fh.write("#SBATCH --gres=gpu:1\n")
+        fh.write(f"#SBATCH --gres=gpu:{ALLOCATE_GPUS}\n")
         fh.write("#SBATCH --mail-type=begin\n")
         fh.write("#SBATCH --mail-type=fail\n")
         fh.write("#SBATCH --mail-type=end\n")
@@ -80,13 +82,13 @@ shift = [0]
 bin_size = [50]
 tf_weight_decay = [0.01]
 tf_dropout = tf_weight_decay
-tf_nlayer = [3, 6]
-tf_nhead = [4, 8]
-tf_dmodel = [128]
-tf_dff = [256]
+tf_nlayer = [6, 12]
+tf_nhead = [8, 16]
+tf_dmodel = [512]
+tf_dff = [1024]
 temp = [0.9]
 lr = [1e-4]
-gpus = [2]
+gpus = [4]
 epochs = [100]
 batch_size = [240]
 

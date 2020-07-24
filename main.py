@@ -5,7 +5,6 @@ from collections import Counter
 from datetime import datetime
 
 import numpy as np
-import pandas as pd
 import torch
 import torch.nn as nn
 import torch.utils.data as data
@@ -25,7 +24,8 @@ from rw_utils import print_model, tabulate_and_print
 from s2s_eval_utils import (bigram_accuracy_report, calc_bigram_train_freqs,
                             create_excel_preds, return_bigram_proba,
                             return_bigram_vocab, save_bigram_counts,
-                            topk_accuracy_report, word_wise_roc)
+                            topk_accuracy_report, word_wise_roc,
+                            concatenate_bigrams)
 from s2s_inference import translate_neural_signal
 from train_eval import train, valid
 from utils import fix_random_seed, print_cuda_usage
@@ -323,53 +323,9 @@ else:
                            valid_all_preds)
 
     print("Generating reports for concatenated outputs")
-    # code written after confession
-    a, b = valid_all_trg_y[:, :2], valid_all_preds[:, :2 * len(vocab)]
-
-    word1 = a[:, 0]
-    word2 = a[:, 1]
-
-    word1_scores = b[:, :len(vocab)]
-    word2_scores = b[:, len(vocab):2 * len(vocab)]
-    word1_top_pred_score, word1_top_pred_idx = torch.sort(word1_scores,
-                                                          dim=1,
-                                                          descending=True)
-    word2_top_pred_score, word2_top_pred_idx = torch.sort(word2_scores,
-                                                          dim=1,
-                                                          descending=True)
-
-    word1_top_pred_df = pd.DataFrame(word1_top_pred_idx.numpy()).replace(i2w)
-    word2_top_pred_df = pd.DataFrame(word2_top_pred_idx.numpy()).replace(i2w)
-
-    # pred_df = pd.DataFrame()
-    pred_df = pd.DataFrame({'word1': [], 'word2': []})
-
-    pred_df['word1'] = word1
-    pred_df['word2'] = word2
-
-    pred_df = pred_df.replace(i2w)
-    pred_df['bigram'] = pred_df.word1 + '_' + pred_df.word2
-
-    k = word1_top_pred_score + word2_top_pred_score
-    k = k.numpy().T
-    kmin = np.min(k, axis=0)
-    ksum = np.sum(k - kmin, axis=0)
-    k = (k - kmin) / ksum
-    k = k.T
-
-    bigram_predictions = np.zeros((true.size, n_classes**2))
-
-    pred_df = pred_df.drop(['word1', 'word2'], axis=1)
-    for idx_out, column in enumerate(word1_top_pred_df.columns):
-        new_col = 'bigram_' + str(column + 1).zfill(2)
-        pred_df[new_col] = word1_top_pred_df[column].str.cat(
-            word2_top_pred_df[column], sep="_")
-
-        for idx_in, element in enumerate(pred_df[new_col]):
-            position = bigram_w2i[(word1_top_pred_df.loc[idx_in, column],
-                                   word2_top_pred_df.loc[idx_in, column])]
-            bigram_predictions[idx_in, position] = k[idx_in, idx_out]
-
+    bigram_predictions = concatenate_bigrams(CONFIG, valid_all_trg_y,
+                                             valid_all_preds, vocab, i2w,
+                                             bigram_w2i, true, n_classes)
     evaluate_roc(bigram_predictions,
                  labels,
                  bigram_i2w,
