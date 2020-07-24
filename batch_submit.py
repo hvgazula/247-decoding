@@ -1,7 +1,20 @@
 import os
-import sys
-
 from itertools import product
+
+
+def contains_exclude_dict(superitem, exclude):
+    for subitem in exclude:
+        if all(item in superitem.items() for item in subitem.items()):
+            return 1
+    return 0
+
+
+def create_exclude_dicts():
+    exclude_args = ['--subjects', '--max-electrodes']
+    exclude_vals = [(625, 64), (676, 55)]
+
+    exclude_dicts = [dict(zip(exclude_args, item)) for item in exclude_vals]
+    return exclude_dicts
 
 
 def create_script(job_name_str, s_list):
@@ -62,12 +75,8 @@ def create_script(job_name_str, s_list):
 
 model = ["MeNTAL"]
 subjects = [625, 676]
-max_electrodes = [55]
+max_electrodes = [55, 64]
 shift = [0]
-lr = [1e-4]
-gpus = [2]
-epochs = [100]
-batch_size = [120]
 bin_size = [50]
 tf_weight_decay = [0.01]
 tf_dropout = tf_weight_decay
@@ -76,27 +85,32 @@ tf_nhead = [4]
 tf_dmodel = [128]
 tf_dff = [128]
 temp = [0.9]
+lr = [1e-4]
+gpus = [2]
+epochs = [100]
+batch_size = [120]
 
-somelists = [
-    model, subjects, lr, gpus, epochs, batch_size, max_electrodes, shift,
-    bin_size, tf_weight_decay, tf_dropout, tf_nlayer, tf_nhead, temp
+arg_values = [
+    model, subjects, max_electrodes, shift, bin_size, tf_weight_decay,
+    tf_dropout, tf_nlayer, tf_nhead, temp, lr, gpus, epochs, batch_size
 ]
 
-stringlists = [
-    '--model', '--subjects', '--lr', '--gpus', '--epochs', '--batch-size',
-    '--max-electrodes', '--shift', '--bin-size', '--weight-decay',
-    '--tf-dropout', '--tf-nlayer', '--tf-nhead', '--temp'
+arg_strings = [
+    '--model', '--subjects', '--max-electrodes', '--shift', '--bin-size',
+    '--weight-decay', '--tf-dropout', '--tf-nlayer', '--tf-nhead', '--temp',
+    '--lr', '--gpus', '--epochs', '--batch-size'
 ]
 
-a = product(*somelists)
+args_dict = dict(zip(arg_strings, arg_values))
+a = product(*args_dict.values())
 
-#TODO: write condition to prevent cross-over subjects (625, 64), (676, 55)
 count = 0
 for element in a:
-    print(list(element), stringlists)
-    final_s = [
-        ' '.join(str(f) for f in tup) for tup in zip(stringlists, element)
-    ]
+    element_dict = dict(zip(arg_strings, element))
+
+    if contains_exclude_dict(element_dict, create_exclude_dicts()):
+        continue
+    final_s = [' '.join(str(f) for f in tup) for tup in element_dict.items()]
     job_name_str = '_'.join([str(item) for item in element])
     file_name = create_script(job_name_str, final_s)
     os.system(f'sbatch {file_name}')
