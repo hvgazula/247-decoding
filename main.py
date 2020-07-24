@@ -194,6 +194,7 @@ if classify:
 
     # Calculate all predictions on test set
     with torch.no_grad():
+        model.eval()
         for batch in valid_dl:
             src, trg = batch[0].to(DEVICE), batch[1].to(DEVICE,
                                                         dtype=torch.long)
@@ -217,7 +218,7 @@ if classify:
                   i2w,
                   train_freq,
                   CONFIG["SAVE_DIR"],
-                  suffix='-val',
+                  suffix='val',
                   min_train=args.vocab_min_freq)
 
     print("Evaluating ROC-AUC")
