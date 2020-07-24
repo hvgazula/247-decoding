@@ -257,7 +257,7 @@ def evaluate_topk(predictions,
     # Write to file
     with open(save_dir + 'r&c-accs-%s.txt' % suffix, 'w') as fout:
         for item in accs:
-            fout.write('%12s\t%5.5f\t%5.5f\t%5.5f\n' %
+            fout.write('%12s\t%7.5f\t%7.5f\t%7.5f\n' %
                        (item[0], item[1][0], item[1][1], item[1][2]))
 
     return
