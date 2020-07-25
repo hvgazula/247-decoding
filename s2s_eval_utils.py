@@ -511,25 +511,27 @@ def concatenate_bigrams(CONFIG, valid_all_trg_y, valid_all_preds, vocab, i2w,
                                    word2_top_pred_df.loc[idx_in, column])]
             bigram_predictions[idx_in, position] = k[idx_in, idx_out]
 
-    uniq_preds = pred_df['bigram_01'].unique().tolist()
-    write_list_to_file(CONFIG, uniq_preds, 'bigram_uniq_preds.csv')
-
-    corr_preds2, length = uniq_preds_correct(CONFIG, pred_df, 'bigram')
-    uniq_inputs = pred_df['bigram'].unique().tolist()
-
-    write_list_to_file(CONFIG, corr_preds2, 'bigram_uniq_preds.csv')
-
-    with open(os.path.join(CONFIG["SAVE_DIR"], 'word1_uniq_preds.csv'),
-              'a+') as fh:
-        fh.write(f'Number of unique inputs: {len(uniq_inputs)}\n')
-        fh.write(f'Number of unique outputs: {len(uniq_preds)}\n')
-        fh.write(f'Number of unique outputs (which are correct): {length}\n')
+    count_unique_predictions(CONFIG, pred_df, 'bigram')
 
     return bigram_predictions
 
 
-def uniq_preds_correct(CONFIG, df, string):
+def count_unique_predictions(CONFIG, df, string):
     pred_col = string + '_01'
+
+    uniq_inputs = df[string].unique()
+    uniq_outputs = df[pred_col].unique().tolist()
+
+    write_list_to_file(CONFIG, uniq_outputs, string + '_uniq_preds.csv')
+
     df['corr_pred'] = df[string] == df[pred_col]
     corr_preds = df.loc[df['corr_pred'], [string, pred_col]][pred_col].unique()
-    return corr_preds, len(corr_preds)
+
+    write_list_to_file(CONFIG, corr_preds, string + '_uniq_preds.csv')
+
+    with open(os.path.join(CONFIG["SAVE_DIR"], string + '_uniq_preds.csv'),
+              'a+') as fh:
+        fh.write(f'Number of unique inputs: {len(uniq_inputs)}\n')
+        fh.write(f'Number of unique outputs: {len(uniq_outputs)}\n')
+        fh.write(
+            f'Number of unique outputs (which are correct): {len(corr_preds)}')
