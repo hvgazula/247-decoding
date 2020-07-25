@@ -53,7 +53,7 @@ def build_design_matrices(CONFIG,
         examples = return_examples(datum_fn, delimiter, exclude_words,
                                    CONFIG["vocabulary"])
 
-        if CONFIG["classify"]:
+        if CONFIG["classify"] and not CONFIG["ngrams"]:
             unigrams = generate_unigrams(examples)
             if not unigrams:
                 print(f'Bad Conversation: {conversation}')

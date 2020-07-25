@@ -55,6 +55,9 @@ print('Plotting Distribution of Signal Lengths')
 seq_lengths = [len(signal) for signal in signals]
 figure5(CONFIG["SAVE_DIR"], seq_lengths, 'all')
 
+if CONFIG["classify"] and CONFIG["ngrams"]:
+    labels = ['_'.join(label) for label in labels]
+
 signals, labels = filter_by_signals(signals, labels, 75)
 assert len(signals) == len(labels), "Size Mismatch: Filter 1"
 print(f'Number of Examples (Post Signal Length Cutoff): {len(signals)}')
