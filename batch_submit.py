@@ -1,7 +1,7 @@
 import os
 from itertools import product
 
-ALLOCATE_GPUS = 4
+ALLOCATE_GPUS = 2
 
 
 def contains_exclude_dict(superitem, exclude):
@@ -43,9 +43,9 @@ def create_script(job_name_str, s_list):
         fh.write("module load anaconda3\n")
         fh.write("conda activate torch-env\n")
         fh.write("\n")
-        fh.write("if [[ -v $SLURM_TASK_ARRAY_ID ]]\n")
+        fh.write("if [[ -v SLURM_ARRAY_TASK_ID ]]\n")
         fh.write("then\n")
-        fh.write("\tSEED=$SLURM_TASK_ARRAY_ID\n")
+        fh.write("\tSEED=$SLURM_ARRAY_TASK_ID\n")
         fh.write("else\n")
         fh.write("\tSEED=1234\n")
         fh.write("fi\n")
@@ -78,6 +78,7 @@ def create_script(job_name_str, s_list):
 model = ["MeNTAL"]
 subjects = [625, 676]
 max_electrodes = [55, 64]
+window_size = [2000, 1000, 500]
 shift = [0]
 bin_size = [50]
 tf_weight_decay = [0.01]
@@ -93,16 +94,16 @@ epochs = [100]
 batch_size = [240]
 
 arg_values = [
-    model, subjects, max_electrodes, shift, bin_size, tf_weight_decay,
-    tf_dropout, tf_nlayer, tf_nhead, tf_dmodel, tf_dff, temp, lr, gpus, epochs,
-    batch_size
+    model, subjects, max_electrodes, window_size, shift, bin_size,
+    tf_weight_decay, tf_dropout, tf_nlayer, tf_nhead, tf_dmodel, tf_dff, temp,
+    lr, gpus, epochs, batch_size
 ]
 
 arg_strings = [
-    '--model', '--subjects', '--max-electrodes', '--shift', '--bin-size',
-    '--weight-decay', '--tf-dropout', '--tf-nlayer', '--tf-nhead',
-    '--tf-dmodel', '--tf-dff', '--temp', '--lr', '--gpus', '--epochs',
-    '--batch-size'
+    '--model', '--subjects', '--max-electrodes', '--window-size', '--shift',
+    '--bin-size', '--weight-decay', '--tf-dropout', '--tf-nlayer',
+    '--tf-nhead', '--tf-dmodel', '--tf-dff', '--temp', '--lr', '--gpus',
+    '--epochs', '--batch-size'
 ]
 
 args_dict = dict(zip(arg_strings, arg_values))
