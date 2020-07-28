@@ -18,7 +18,7 @@ class PITOM(nn.Module):
 
         self.conv1 = nn.Conv1d(num_electrodes,
                                out_channels=128,
-                               kernel_size=9,
+                               kernel_size=3,
                                stride=1,
                                padding=0,
                                bias=False)
@@ -27,7 +27,7 @@ class PITOM(nn.Module):
 
         self.conv2 = nn.Conv1d(in_channels=128,
                                out_channels=128,
-                               kernel_size=4,
+                               kernel_size=2,
                                stride=1,
                                padding=0,
                                bias=False)

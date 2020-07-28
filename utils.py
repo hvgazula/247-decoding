@@ -114,7 +114,9 @@ def calculate_windows_params(CONFIG, gram, param_dict):
     begin_window = gram[2] + param_dict['start_offset']
     end_window = gram[3] + param_dict['end_offset']
 
-    if CONFIG["classify"]:  # fixed number of bins
+    if CONFIG["classify"] and CONFIG["ngrams"]:
+        bin_size = 50
+    elif CONFIG["classify"] and not CONFIG["ngrams"]:  # fixed number of bins
         half_window = param_dict["half_window"]
         bin_size = len(range(-half_window, half_window, param_dict["bin_fs"]))
     else:
