@@ -131,6 +131,8 @@ def train(data_iter,
             # sys.stdout.flush()
         else:
             out = model.forward(src)
+            if src.shape[0] == 1:
+                out = out.view(1, -1)
             loss = criterion(out.view(-1, out.size(-1)), trg.view(-1))
             loss.backward()
             if opt is not None:
@@ -194,6 +196,8 @@ def valid(data_iter,
             total_sample_rank_acc += float((pred == trg_y).sum()) """
         else:
             out = model.forward(src)
+            if src.shape[0] == 1:
+                out = out.view(1, -1)
             loss = criterion(out.view(-1, out.size(-1)), trg.view(-1))
             total_loss += loss.data.item()
             total_acc += float((torch.argmax(out, dim=1) == trg).sum())
