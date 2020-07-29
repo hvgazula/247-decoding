@@ -44,7 +44,6 @@ class PITOM(nn.Module):
 
     def forward(self, x):
         x = x.transpose(1, 2)
-        print(x.shape)
         x = F.dropout(self.bn1(torch.relu(self.conv1(x))), p=0.2, inplace=True)
         x = self.max1(x)
         x = F.dropout(self.bn2(torch.relu(self.conv2(x))), p=0.2, inplace=True)
