@@ -2,6 +2,8 @@ import os
 from itertools import product
 
 ALLOCATE_GPUS = 2
+NGRAM_FLAG = 1
+NSEQ_FLAG = 1
 
 
 def contains_exclude_dict(superitem, exclude):
@@ -52,6 +54,10 @@ def create_script(job_name_str, s_list):
         fh.write(f"python {os.path.join(os.getcwd(), 'main.py')} \\\n")
         for item in s_list:
             fh.write(f'\t{item} \\\n')
+        if NGRAM_FLAG:
+            fh.write("--ngrams \\\n")
+        if NSEQ_FLAG:
+            fh.write("--nseq \\\n")    
         fh.write("\t--seed $SEED \\\n")
         fh.write(f"\t--output-folder {job_name_str}\n")
 
