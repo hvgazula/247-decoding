@@ -88,8 +88,9 @@ train_ds = Brain2TextDataset(X_train, y_train)
 valid_ds = Brain2TextDataset(X_test, y_test)
 
 print('Creating DataLoader Objects')
-my_collator = None if classify else MyCollator(CONFIG, vocab)
-
+my_collator = None if classify and not CONFIG["nseq"] else MyCollator(
+    CONFIG, vocab)
+print(my_collator)
 train_dl = data.DataLoader(train_ds,
                            batch_size=CONFIG["batch_size"],
                            shuffle=True,

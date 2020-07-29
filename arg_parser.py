@@ -66,6 +66,7 @@ def arg_parser(default_args: Optional[List] = None):
     parser.add_argument('--init-model', type=str, default=None)
     parser.add_argument('--no-plot', action='store_false', default=False)
     parser.add_argument('--ngrams', action='store_true', default=False)
+    parser.add_argument('--nseq', action='store_true', default=False)
     parser.add_argument('--vocab-min-freq', type=int, default=10)
     parser.add_argument('--vocab-max-freq', type=int, default=1000000)
     parser.add_argument('--max-num-bins', type=int, default=1000000)

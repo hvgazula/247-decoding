@@ -114,14 +114,16 @@ def calculate_windows_params(CONFIG, gram, param_dict):
     begin_window = gram[2] + param_dict['start_offset']
     end_window = gram[3] + param_dict['end_offset']
 
-    if CONFIG["classify"] and CONFIG["ngrams"]:
+    if CONFIG["classify"] and CONFIG["ngrams"] and not CONFIG["nseq"]:
         bin_size = 50
     elif CONFIG["classify"] and not CONFIG["ngrams"]:  # fixed number of bins
         half_window = param_dict["half_window"]
         bin_size = len(range(-half_window, half_window, param_dict["bin_fs"]))
-    else:
+    elif CONFIG["classify"] and CONFIG["ngrams"] and CONFIG["nseq"]:
         bin_size = int(
             math.ceil((end_window - begin_window) / param_dict['bin_fs']))
+    else:
+        print("Nothing can be done")
 
     return seq_length, begin_window, end_window, bin_size
 
