@@ -103,3 +103,13 @@ class MyCollator(object):
         pad_mask = labels == self.vocabulary[self.pad_token]
 
         return pos_mask, pad_mask
+
+
+def pitom_collate(batch):
+    xx, yy = zip(*batch)
+    xx_pad = torch.nn.utils.rnn.pad_sequence(
+        [batch[i][0] for i in range(len(batch))],
+        batch_first=True,
+        padding_value=0.)
+
+    return xx_pad, torch.tensor(yy)
