@@ -4,6 +4,7 @@ from itertools import product
 ALLOCATE_GPUS = 2
 NGRAM_FLAG = 1
 NSEQ_FLAG = 1
+MAX_JOBS = 10
 
 
 def contains_exclude_dict(superitem, exclude):
@@ -32,7 +33,7 @@ def create_script(job_name_str, s_list):
         fh.write("#SBATCH --error=./slurm_logs/%j-%x.err\n")
         fh.write("#SBATCH --nodes=1 #nodes\n")
         fh.write("#SBATCH --ntasks-per-node=1\n")
-        fh.write("#SBATCH --cpus-per-task=4\n")
+        fh.write("#SBATCH --cpus-per-task=2\n")
         fh.write("#SBATCH --mem=16G\n")
         fh.write("#SBATCH --time=0-02:00:00\n")
         fh.write(f"#SBATCH --gres=gpu:{ALLOCATE_GPUS}\n")
@@ -55,9 +56,9 @@ def create_script(job_name_str, s_list):
         for item in s_list:
             fh.write(f'\t{item} \\\n')
         if NGRAM_FLAG:
-            fh.write("--ngrams \\\n")
+            fh.write("\t--ngrams \\\n")
         if NSEQ_FLAG:
-            fh.write("--nseq \\\n")    
+            fh.write("\t--nseq \\\n")    
         fh.write("\t--seed $SEED \\\n")
         fh.write(f"\t--output-folder {job_name_str}\n")
 
@@ -81,7 +82,7 @@ def create_script(job_name_str, s_list):
 # tf_dff = [128, 256, 512, 1024]
 # temp = [0.9, 0.95, 0.96, 0.97, 0.98, 0.99, 0.995]
 
-model = ["MeNTAL"]
+model = ["PITOM"]
 subjects = [625, 676]
 max_electrodes = [55, 64]
 window_size = [2000, 1000, 500]
@@ -89,15 +90,15 @@ shift = [0]
 bin_size = [50]
 tf_weight_decay = [0.01]
 tf_dropout = tf_weight_decay
-tf_nlayer = [6, 12]
-tf_nhead = [8, 16]
+tf_nlayer = [0]
+tf_nhead = [0]
 tf_dmodel = [512]
 tf_dff = [1024]
 temp = [0.9]
 lr = [1e-4]
-gpus = [4]
+gpus = [2]
 epochs = [100]
-batch_size = [240]
+batch_size = [1, 240]
 
 arg_values = [
     model, subjects, max_electrodes, window_size, shift, bin_size,
@@ -124,7 +125,7 @@ for element in a:
     final_s = [' '.join(str(f) for f in tup) for tup in element_dict.items()]
     job_name_str = '_'.join([str(item) for item in element])
     file_name = create_script(job_name_str, final_s)
-    os.system(f'sbatch {file_name}')
+    os.system(f'sbatch --array=1-{MAX_JOBS} {file_name}')
     count = count + 1
 
 print(f"Number of slurm scripts generated is: {count}")
