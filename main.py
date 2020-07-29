@@ -14,7 +14,7 @@ from transformers import AdamW
 from arg_parser import arg_parser
 from build_matrices import build_design_matrices
 from config import build_config
-from dl_utils import Brain2TextDataset, MyCollator
+from dl_utils import Brain2TextDataset, MyCollator, pitom_collate
 from eval_utils import evaluate_roc, evaluate_topk
 from filter_utils import filter_by_labels, filter_by_signals
 from gram_utils import transform_labels
@@ -88,9 +88,13 @@ train_ds = Brain2TextDataset(X_train, y_train)
 valid_ds = Brain2TextDataset(X_test, y_test)
 
 print('Creating DataLoader Objects')
-my_collator = None if classify and not CONFIG["nseq"] else MyCollator(
-    CONFIG, vocab)
-print(my_collator)
+if classify and not CONFIG["nseq"]:
+    my_collator = None
+elif classify and CONFIG["nseq"]:
+    my_collator = pitom_collate
+else:
+    my_collator = MyCollator(CONFIG, vocab)
+
 train_dl = data.DataLoader(train_ds,
                            batch_size=CONFIG["batch_size"],
                            shuffle=True,
