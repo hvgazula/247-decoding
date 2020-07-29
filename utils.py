@@ -115,17 +115,15 @@ def calculate_windows_params(CONFIG, gram, param_dict):
     end_window = gram[3] + param_dict['end_offset']
 
     if CONFIG["classify"] and CONFIG["ngrams"] and not CONFIG["nseq"]:
-        bin_size = 50
+        num_bins = 50
     elif CONFIG["classify"] and not CONFIG["ngrams"]:  # fixed number of bins
         half_window = param_dict["half_window"]
-        bin_size = len(range(-half_window, half_window, param_dict["bin_fs"]))
-    elif CONFIG["classify"] and CONFIG["ngrams"] and CONFIG["nseq"]:
-        bin_size = int(
-            math.ceil((end_window - begin_window) / param_dict['bin_fs']))
+        num_bins = len(range(-half_window, half_window, param_dict["bin_fs"]))
     else:
-        print("Nothing can be done")
+        num_bins = int(
+            math.ceil((end_window - begin_window) / param_dict['bin_fs']))
 
-    return seq_length, begin_window, end_window, bin_size
+    return seq_length, begin_window, end_window, num_bins
 
 
 def convert_ms_to_fs(CONFIG, fs=512):
