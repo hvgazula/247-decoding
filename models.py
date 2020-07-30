@@ -35,7 +35,7 @@ class PITOM(nn.Module):
 
         self.conv3 = nn.Conv1d(in_channels=128,
                                out_channels=128,
-                               kernel_size=8,
+                               kernel_size=2,
                                stride=1,
                                padding=0)
         self.bn3 = nn.BatchNorm1d(128)
