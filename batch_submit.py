@@ -3,7 +3,7 @@ from itertools import product
 
 ALLOCATE_GPUS = 2
 NGRAM_FLAG = 1
-NSEQ_FLAG = 1
+NSEQ_FLAG = 0
 MAX_JOBS = 10
 
 
@@ -85,7 +85,7 @@ def create_script(job_name_str, s_list):
 model = ["PITOM"]
 subjects = [625, 676]
 max_electrodes = [55, 64]
-window_size = [2000, 1000, 500]
+window_size = [2000, 1500, 1000, 500]
 shift = [0]
 bin_size = [50]
 tf_weight_decay = [0.01]
@@ -98,7 +98,7 @@ temp = [0.9]
 lr = [1e-4]
 gpus = [2]
 epochs = [100]
-batch_size = [1, 240]
+batch_size = [240]
 
 arg_values = [
     model, subjects, max_electrodes, window_size, shift, bin_size,

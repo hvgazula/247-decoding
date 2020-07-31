@@ -37,7 +37,7 @@ results_str = start_time.strftime("%Y%m%d%H%M")  # results folder prefix
 
 args = arg_parser()  # parse command line arguments
 CONFIG = build_config(args, results_str)
-# sys.stdout = open(CONFIG["LOG_FILE"], 'w')
+sys.stdout = open(CONFIG["LOG_FILE"], 'w')
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print(f'Start Time: {date_str}')
