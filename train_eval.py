@@ -130,7 +130,7 @@ def train(data_iter,
             # print("hereo")
             # sys.stdout.flush()
         else:
-            out = model.forward(src)
+            out = model(src)
             if src.shape[0] == 1:
                 out = out.view(1, -1)
             loss = criterion(out.view(-1, out.size(-1)), trg.view(-1))
@@ -195,7 +195,7 @@ def valid(data_iter,
                 pred[j] = samples[j, torch.argmax(out[j, samples[j]])]
             total_sample_rank_acc += float((pred == trg_y).sum()) """
         else:
-            out = model.forward(src)
+            out = model(src)
             if src.shape[0] == 1:
                 out = out.view(1, -1)
             loss = criterion(out.view(-1, out.size(-1)), trg.view(-1))
