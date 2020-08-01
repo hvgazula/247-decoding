@@ -89,7 +89,10 @@ def classify_neural_signal(CONFIG, vocab, device, model, data_iterator):
         for batch in data_iterator:
             src = batch[0].to(device)
             end = start + src.size(0)
-            out = softmax(model(src))
+            out = model(src)
+            if src.shape[0] == 1:
+                out = out.view(1, -1)
+            out = softmax(out)
             all_preds[start:end, :] = out.cpu()
             start = end
 
