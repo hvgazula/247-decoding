@@ -116,7 +116,7 @@ def calculate_windows_params(CONFIG, gram, param_dict):
 
     if CONFIG["classify"] and CONFIG["ngrams"] and not CONFIG["nseq"]:
         num_bins = 50
-    elif CONFIG["classify"] and not CONFIG["ngrams"]:  # fixed number of bins
+    elif CONFIG["classify"] and not CONFIG["ngrams"] and not CONFIG["nseq"]:  # fixed number of bins
         half_window = param_dict["half_window"]
         num_bins = len(range(-half_window, half_window, param_dict["bin_fs"]))
     else:
