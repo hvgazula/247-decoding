@@ -5,7 +5,7 @@ from itertools import product
 ALLOCATE_GPUS = 2
 NGRAM_FLAG = 1
 NSEQ_FLAG = 0
-MAX_JOBS = 10
+MAX_JOBS = 15
 
 
 def contains_exclude_dict(superitem, exclude):
@@ -15,9 +15,12 @@ def contains_exclude_dict(superitem, exclude):
     return 0
 
 
-def gather_results_folders(results_folders):
-    with open('Result_Folders', 'a+') as file_h:
-        file_h.writelines(folder + '\n' for folder in results_folders)
+def gather_results_folders(args, folder_list):
+    output_file = os.path.join(os.getcwd(), args.experiment_suffix,
+                               'folder_list')
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    with open(output_file, 'a+') as file_h:
+        file_h.writelines(folder + '\n' for folder in folder_list)
 
 
 def create_exclude_dicts():
@@ -73,9 +76,9 @@ def create_script(job_name_str, s_list, args):
 
 def experiment_configuration():
     model = ["PITOM"]
-    subjects = [625]
+    subjects = [625, 676]
     max_electrodes = [55]
-    window_size = [2000]
+    window_size = [2000, 1000, 500]
     shift = [0]
     bin_size = [50]
     tf_weight_decay = [0.01]
@@ -127,7 +130,7 @@ def main(args):
         count = count + 1
         results_folders.append(job_name_str)
 
-    gather_results_folders(results_folders)
+    gather_results_folders(args, results_folders)
 
     print(f"Number of slurm scripts generated is: {count}")
 
