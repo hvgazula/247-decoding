@@ -87,8 +87,8 @@ def build_config(args, results_str):
         SAVE_DIR = './Results/%s-%s-%s-%s/' % (results_str, '+'.join(
             args.subjects), args.model, str(args.seed))
     else:
-        SAVE_DIR = './Results/%s-%s-%s/' % (results_str, args.output_folder,
-                                            str(args.seed))
+        SAVE_DIR = './%s-Experiments/%s/%s/' % (
+            args.exp_suffix, args.output_folder, str(args.seed))
     LOG_FILE = SAVE_DIR + 'output'
     if not os.path.isdir(SAVE_DIR):
         os.makedirs(SAVE_DIR)

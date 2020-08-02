@@ -1,3 +1,4 @@
+import argparse
 import os
 from itertools import product
 
@@ -14,6 +15,11 @@ def contains_exclude_dict(superitem, exclude):
     return 0
 
 
+def gather_results_folders(results_folders):
+    with open('Result_Folders', 'a+') as file_h:
+        file_h.writelines(folder + '\n' for folder in results_folders)
+
+
 def create_exclude_dicts():
     exclude_args = ['--subjects', '--max-electrodes']
     exclude_vals = [(625, 64), (676, 55)]
@@ -22,7 +28,7 @@ def create_exclude_dicts():
     return exclude_dicts
 
 
-def create_script(job_name_str, s_list):
+def create_script(job_name_str, s_list, args):
     file_name = os.path.join(os.getcwd(), 'slurm_scripts',
                              f'{job_name_str}.sh')
     os.makedirs(os.path.dirname(file_name), exist_ok=True)
@@ -51,81 +57,84 @@ def create_script(job_name_str, s_list):
         fh.write("\tSEED=$SLURM_ARRAY_TASK_ID\n")
         fh.write("else\n")
         fh.write("\tSEED=1234\n")
-        fh.write("fi\n")
+        fh.write("fi\n\n")
         fh.write(f"python {os.path.join(os.getcwd(), 'main.py')} \\\n")
         for item in s_list:
             fh.write(f'\t{item} \\\n')
         if NGRAM_FLAG:
             fh.write("\t--ngrams \\\n")
         if NSEQ_FLAG:
-            fh.write("\t--nseq \\\n")    
+            fh.write("\t--nseq \\\n")
         fh.write("\t--seed $SEED \\\n")
-        fh.write(f"\t--output-folder {job_name_str}\n")
-
+        fh.write(f"\t--output-folder {job_name_str} \\\n")
+        fh.write(f"\t--exp-suffix {args.experiment_suffix}\n")
     return file_name
 
 
-# model = ["MeNTAL"]
-# subjects = [625, 676]
-# max_electrodes = [55, 64]
-# shift = [25, 50, 100, 150, 250, 500]
-# lr = 1e-4
-# gpus = 1
-# epochs = 100
-# batch_size = 120
-# bin_size = [25, 50, 75, 100, 125, 150]
-# tf_weight_decay = [0.01, 0.025, 0.05, 0.075]
-# tf_dropout = [0.1]
-# tf_nlayers = [3, 6, 9, 12]
-# tf_nheads = [4, 8, 16]
-# tf_dmodel = [128, 256, 512, 1024]
-# tf_dff = [128, 256, 512, 1024]
-# temp = [0.9, 0.95, 0.96, 0.97, 0.98, 0.99, 0.995]
+def experiment_configuration():
+    model = ["PITOM"]
+    subjects = [625]
+    max_electrodes = [55]
+    window_size = [2000]
+    shift = [0]
+    bin_size = [50]
+    tf_weight_decay = [0.01]
+    tf_dropout = tf_weight_decay
+    tf_nlayer = [0]
+    tf_nhead = [0]
+    tf_dmodel = [512]
+    tf_dff = [1024]
+    temp = [0.9]
+    lr = [1e-4]
+    gpus = [2]
+    epochs = [100]
+    batch_size = [240]
 
-model = ["PITOM"]
-subjects = [625, 676]
-max_electrodes = [55, 64]
-window_size = [2000, 1500, 1000, 500]
-shift = [0]
-bin_size = [50]
-tf_weight_decay = [0.01]
-tf_dropout = tf_weight_decay
-tf_nlayer = [0]
-tf_nhead = [0]
-tf_dmodel = [512]
-tf_dff = [1024]
-temp = [0.9]
-lr = [1e-4]
-gpus = [2]
-epochs = [100]
-batch_size = [240]
+    arg_values = [
+        model, subjects, max_electrodes, window_size, shift, bin_size,
+        tf_weight_decay, tf_dropout, tf_nlayer, tf_nhead, tf_dmodel, tf_dff,
+        temp, lr, gpus, epochs, batch_size
+    ]
 
-arg_values = [
-    model, subjects, max_electrodes, window_size, shift, bin_size,
-    tf_weight_decay, tf_dropout, tf_nlayer, tf_nhead, tf_dmodel, tf_dff, temp,
-    lr, gpus, epochs, batch_size
-]
+    arg_strings = [
+        '--model', '--subjects', '--max-electrodes', '--window-size',
+        '--shift', '--bin-size', '--weight-decay', '--tf-dropout',
+        '--tf-nlayer', '--tf-nhead', '--tf-dmodel', '--tf-dff', '--temp',
+        '--lr', '--gpus', '--epochs', '--batch-size'
+    ]
 
-arg_strings = [
-    '--model', '--subjects', '--max-electrodes', '--window-size', '--shift',
-    '--bin-size', '--weight-decay', '--tf-dropout', '--tf-nlayer',
-    '--tf-nhead', '--tf-dmodel', '--tf-dff', '--temp', '--lr', '--gpus',
-    '--epochs', '--batch-size'
-]
+    return arg_values, arg_strings
 
-args_dict = dict(zip(arg_strings, arg_values))
-a = product(*args_dict.values())
 
-count = 0
-for element in a:
-    element_dict = dict(zip(arg_strings, element))
+def main(args):
+    arg_values, arg_strings = experiment_configuration()
+    args_dict = dict(zip(arg_strings, arg_values))
+    a = product(*args_dict.values())
 
-    if contains_exclude_dict(element_dict, create_exclude_dicts()):
-        continue
-    final_s = [' '.join(str(f) for f in tup) for tup in element_dict.items()]
-    job_name_str = '_'.join([str(item) for item in element])
-    file_name = create_script(job_name_str, final_s)
-    os.system(f'sbatch --array=1-{MAX_JOBS} {file_name}')
-    count = count + 1
+    count = 0
+    results_folders = []
+    for element in a:
+        element_dict = dict(zip(arg_strings, element))
 
-print(f"Number of slurm scripts generated is: {count}")
+        if contains_exclude_dict(element_dict, create_exclude_dicts()):
+            continue
+        final_s = [
+            ' '.join(str(f) for f in tup) for tup in element_dict.items()
+        ]
+        job_name_str = '_'.join([str(item) for item in element])
+        file_name = create_script(job_name_str, final_s, args)
+        os.system(f'sbatch --array=01-{MAX_JOBS} {file_name}')
+        count = count + 1
+        results_folders.append(job_name_str)
+
+    gather_results_folders(results_folders)
+
+    print(f"Number of slurm scripts generated is: {count}")
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('experiment_suffix')
+    args = parser.parse_args()
+
+    main(args)
