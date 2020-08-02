@@ -81,6 +81,7 @@ def arg_parser(default_args: Optional[List] = None):
     parser.add_argument('--tf-dropout', type=float, default=0.05)
     parser.add_argument('--weight-decay', type=float, default=0.35)
     parser.add_argument('--output-folder', type=str, default=None)
+    parser.add_argument('--exp-suffix', type=str, default='NAE')
 
     if not default_args:
         args = parser.parse_args()
