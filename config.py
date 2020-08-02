@@ -130,7 +130,7 @@ def write_config(dictionary):
     Args:
         CONFIG (dict): configuration
     """
-    json_object = json.dumps(dictionary, indent=4)
+    json_object = json.dumps(dictionary, sort_keys=True, indent=4)
 
     config_file = os.path.join(dictionary['SAVE_DIR'], 'config.json')
     with open(config_file, "w") as outfile:
