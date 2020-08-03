@@ -26,8 +26,6 @@ arg_strings = [
     'tf-dff', 'temp', 'lr', 'gpus', 'epochs', 'batch-size'
 ]
 
-drop_columns = ['gpus', 'epochs']
-
 topk_cols = [
     'top1', 'top1-chance', 'top5', 'top5-chance', 'top10', 'top10-chance'
 ]
@@ -45,13 +43,11 @@ with open(folder_list_file, 'r') as file_h:
 folder_list = [item.rstrip() for item in folder_list]
 
 dict_list = []
-big_abc = []
-big_auc = []
+big_abc, big_auc = [], []
 for folder in folder_list:
     exp_config = folder.split('_')
     dict_list.append(dict(zip(arg_strings, exp_config)))
-    abc = []
-    jkl = []
+    abc, jkl = [], []
     full_folder_path = os.path.join(PARENT_DIR, folder)
     trials = os.listdir(full_folder_path)
     for trial in trials:
