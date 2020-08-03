@@ -100,19 +100,20 @@ def experiment_configuration():
     lr = [1e-4]
     gpus = [2]
     epochs = [100]
-    batch_size = [24, 48, 96, 120, 144, 168, 192, 216, 240]
+    batch_size = [12, 24, 36, 48, 96, 120, 144, 168, 192, 216, 240]
+    vocab_min_freq = [10, 20, 30, 40, 50, 60]
 
     arg_values = [
         model, subjects, max_electrodes, window_size, shift, bin_size,
         tf_weight_decay, tf_dropout, tf_nlayer, tf_nhead, tf_dmodel, tf_dff,
-        temp, lr, gpus, epochs, batch_size
+        temp, lr, gpus, epochs, batch_size, vocab_min_freq
     ]
 
     arg_strings = [
         '--model', '--subjects', '--max-electrodes', '--window-size',
         '--shift', '--bin-size', '--weight-decay', '--tf-dropout',
         '--tf-nlayer', '--tf-nhead', '--tf-dmodel', '--tf-dff', '--temp',
-        '--lr', '--gpus', '--epochs', '--batch-size'
+        '--lr', '--gpus', '--epochs', '--batch-size', '--vocab-min-freq'
     ]
 
     return arg_values, arg_strings
@@ -134,7 +135,7 @@ def main(args):
         ]
         job_name_str = '_'.join([str(item) for item in element])
         file_name = create_script(job_name_str, final_s, args)
-        os.system(f'sbatch --array=01-{MAX_JOBS} {file_name}')
+        # os.system(f'sbatch --array=01-{MAX_JOBS} {file_name}')
         results_folders.append(job_name_str)
 
     gather_results_folders(args, results_folders)
