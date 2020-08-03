@@ -51,6 +51,33 @@ def return_config_dict():
     return CONFIG
 
 
+def create_directory_paths(CONFIG, args, results_str):
+    # Format directory logistics
+    CONV_DIRS = [
+        CONFIG["data_dir"] + '/%s-conversations/' % i for i in args.subjects
+    ]
+    META_DIRS = [
+        CONFIG["data_dir"] + '/%s-metadata/' % i for i in args.subjects
+    ]
+    if not args.output_folder:
+        SAVE_DIR = './Results/%s-%s-%s-%s/' % (results_str, '+'.join(
+            args.subjects), args.model, str(args.seed))
+    else:
+        SAVE_DIR = './%s/%s/%s/' % (args.exp_suffix, args.output_folder,
+                                    str(args.seed))
+    LOG_FILE = SAVE_DIR + 'output'
+    if not os.path.isdir(SAVE_DIR):
+        os.makedirs(SAVE_DIR)
+
+    DIR_DICT = dict(CONV_DIRS=CONV_DIRS,
+                    META_DIRS=META_DIRS,
+                    SAVE_DIR=SAVE_DIR,
+                    LOG_FILE=LOG_FILE)
+    CONFIG.update(DIR_DICT)
+
+    return CONFIG
+
+
 def build_config(args, results_str):
     """Combine configuration and input arguments
 
@@ -76,23 +103,6 @@ def build_config(args, results_str):
     classify = False if (args.model in MODEL_OBJ
                          and MODEL_OBJ[args.model] == "seq2seq") else True
 
-    # Format directory logistics
-    CONV_DIRS = [
-        CONFIG["data_dir"] + '/%s-conversations/' % i for i in args.subjects
-    ]
-    META_DIRS = [
-        CONFIG["data_dir"] + '/%s-metadata/' % i for i in args.subjects
-    ]
-    if not args.output_folder:
-        SAVE_DIR = './Results/%s-%s-%s-%s/' % (results_str, '+'.join(
-            args.subjects), args.model, str(args.seed))
-    else:
-        SAVE_DIR = './%s/%s/%s/' % (
-            args.exp_suffix, args.output_folder, str(args.seed))
-    LOG_FILE = SAVE_DIR + 'output'
-    if not os.path.isdir(SAVE_DIR):
-        os.makedirs(SAVE_DIR)
-
     if len(args.subjects) == 1:
         if args.subjects[0] == '625':
             CONFIG["datum_suffix"] = [CONFIG["datum_suffix"][0]]
@@ -112,12 +122,11 @@ def build_config(args, results_str):
 
     CONFIG["num_features"] = sum(CONFIG["max_electrodes"])
 
-    DIR_DICT = dict(CONV_DIRS=CONV_DIRS,
-                    META_DIRS=META_DIRS,
-                    SAVE_DIR=SAVE_DIR,
-                    LOG_FILE=LOG_FILE,
-                    classify=classify,
+    DIR_DICT = dict(classify=classify,
                     gpus=gpus)
+
+    CONFIG = create_directory_paths(CONFIG, args, results_str)
+
     CONFIG.update(DIR_DICT)
     write_config(CONFIG)
 
