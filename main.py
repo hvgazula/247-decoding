@@ -62,7 +62,8 @@ signals, labels = filter_by_signals(signals, labels, 75)
 assert len(signals) == len(labels), "Size Mismatch: Filter 1"
 print(f'Number of Examples (Post Signal Length Cutoff): {len(signals)}')
 
-signals, labels = filter_by_labels(CONFIG, signals, labels, 30)
+signals, labels = filter_by_labels(CONFIG, signals, labels,
+                                   CONFIG["vocab_min_freq"])
 assert len(signals) == len(labels), "Size Mismatch: Filter 2"
 print(f'Number of Examples (Post Class Size Cutoff): {len(signals)}')
 
