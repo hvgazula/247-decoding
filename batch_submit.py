@@ -2,10 +2,16 @@ import argparse
 import os
 from itertools import product
 
+import numpy as np
+
 ALLOCATE_GPUS = 2
 NGRAM_FLAG = 1
 NSEQ_FLAG = 0
-MAX_JOBS = 15
+MAX_JOBS = 20
+
+
+def experiment_folder(args):
+    return os.path.join(os.getcwd(), args.experiment_suffix)
 
 
 def contains_exclude_dict(superitem, exclude):
@@ -16,8 +22,7 @@ def contains_exclude_dict(superitem, exclude):
 
 
 def gather_results_folders(args, folder_list):
-    output_file = os.path.join(os.getcwd(), args.experiment_suffix,
-                               'folder_list')
+    output_file = os.path.join(experiment_folder(args), 'folder_list')
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
     with open(output_file, 'a+') as file_h:
         file_h.writelines(folder + '\n' for folder in folder_list)
@@ -32,14 +37,18 @@ def create_exclude_dicts():
 
 
 def create_script(job_name_str, s_list, args):
-    file_name = os.path.join(os.getcwd(), 'slurm_scripts',
+    file_name = os.path.join(experiment_folder(args), 'slurm_scripts',
                              f'{job_name_str}.sh')
+    slurm_logs_folder = os.path.join(experiment_folder(args), 'slurm_logs')
+
     os.makedirs(os.path.dirname(file_name), exist_ok=True)
+    os.makedirs(slurm_logs_folder, exist_ok=True)
+
     with open(file_name, 'w+') as fh:
         fh.write("#!/bin/bash\n")
         fh.write(f"#SBATCH --job-name={job_name_str}\n")
-        fh.write("#SBATCH --output=./slurm_logs/%j-%x.out\n")
-        fh.write("#SBATCH --error=./slurm_logs/%j-%x.err\n")
+        fh.write(f"#SBATCH --output={slurm_logs_folder}/%j-%x.out\n")
+        fh.write(f"#SBATCH --error={slurm_logs_folder}/%j-%x.err\n")
         fh.write("#SBATCH --nodes=1 #nodes\n")
         fh.write("#SBATCH --ntasks-per-node=1\n")
         fh.write("#SBATCH --cpus-per-task=2\n")
@@ -78,7 +87,7 @@ def experiment_configuration():
     model = ["PITOM"]
     subjects = [625, 676]
     max_electrodes = [55]
-    window_size = [2000, 1000, 500]
+    window_size = [2000]
     shift = [0]
     bin_size = [50]
     tf_weight_decay = [0.01]
@@ -91,7 +100,7 @@ def experiment_configuration():
     lr = [1e-4]
     gpus = [2]
     epochs = [100]
-    batch_size = [240]
+    batch_size = [24, 48, 96, 120, 144, 168, 192, 216, 240]
 
     arg_values = [
         model, subjects, max_electrodes, window_size, shift, bin_size,
@@ -114,7 +123,6 @@ def main(args):
     args_dict = dict(zip(arg_strings, arg_values))
     a = product(*args_dict.values())
 
-    count = 0
     results_folders = []
     for element in a:
         element_dict = dict(zip(arg_strings, element))
@@ -127,12 +135,11 @@ def main(args):
         job_name_str = '_'.join([str(item) for item in element])
         file_name = create_script(job_name_str, final_s, args)
         os.system(f'sbatch --array=01-{MAX_JOBS} {file_name}')
-        count = count + 1
         results_folders.append(job_name_str)
 
     gather_results_folders(args, results_folders)
 
-    print(f"Number of slurm scripts generated is: {count}")
+    print(f"Number of slurm scripts generated is: {len(results_folders)}")
 
 
 if __name__ == '__main__':
