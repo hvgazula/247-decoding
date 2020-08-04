@@ -37,7 +37,7 @@ results_str = start_time.strftime("%Y%m%d%H%M")  # results folder prefix
 
 args = arg_parser()  # parse command line arguments
 CONFIG = build_config(args, results_str)
-sys.stdout = open(CONFIG["LOG_FILE"], 'w')
+# sys.stdout = open(CONFIG["LOG_FILE"], 'w')
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print(f'Start Time: {date_str}')
@@ -187,8 +187,8 @@ print("Evaluating predictions on test set")
 best_model = torch.load(model_name)  # Load best model
 
 if classify:
-    all_preds = classify_neural_signal(CONFIG, vocab, DEVICE, best_model,
-                                       valid_dl)
+    all_trg_y, topk_preds, topk_preds_scores, all_preds = classify_neural_signal(CONFIG, vocab, DEVICE, best_model,
+                                            valid_dl)
 
     # Make categorical
     n_examples = len(y_test)
@@ -214,6 +214,10 @@ if classify:
                  CONFIG["SAVE_DIR"],
                  do_plot=not args.no_plot,
                  min_train=args.vocab_min_freq)
+
+    if CONFIG["ngrams"]:
+        valid_preds_df = create_excel_preds(all_trg_y, topk_preds, all_preds, i2w)
+
 else:
     print("Start of postprocessing seq2seq results")
     (train_all_trg_y, train_topk_preds, train_topk_preds_scores,

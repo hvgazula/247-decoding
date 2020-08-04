@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import sys
 
 
 def translate_neural_signal(CONFIG, vocab, device, model, data_iterator):
@@ -96,4 +97,7 @@ def classify_neural_signal(CONFIG, vocab, device, model, data_iterator):
             all_preds[start:end, :] = out.cpu()
             start = end
 
-    return all_preds
+    topk_preds_scores, topk_preds = torch.topk(torch.tensor(all_preds), 10)
+    _, all_trg_y = zip(*data_iterator.dataset.examples)
+
+    return all_trg_y, topk_preds, topk_preds_scores, all_preds
