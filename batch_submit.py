@@ -4,10 +4,10 @@ from itertools import product
 
 import numpy as np
 
-ALLOCATE_GPUS = 2
+ALLOCATE_GPUS = 1
 NGRAM_FLAG = 1
 NSEQ_FLAG = 0
-MAX_JOBS = 20
+MAX_JOBS = 2
 
 
 def experiment_folder(args):
@@ -84,24 +84,24 @@ def create_script(job_name_str, s_list, args):
 
 
 def experiment_configuration():
-    model = ["PITOM"]
+    model = ["PITOM", "ConvNet10", "MeNTAlmini"]
     subjects = [625, 676]
     max_electrodes = [55]
-    window_size = [2000]
+    window_size = np.arange(350, 2001, 450).tolist()
     shift = [0]
     bin_size = [50]
     tf_weight_decay = [0.01]
     tf_dropout = tf_weight_decay
-    tf_nlayer = [0]
-    tf_nhead = [0]
+    tf_nlayer = [3]
+    tf_nhead = [4]
     tf_dmodel = [512]
     tf_dff = [1024]
     temp = [0.9]
     lr = [1e-4]
     gpus = [2]
     epochs = [100]
-    batch_size = [12, 24, 36, 48, 96, 120, 144, 168, 192, 216, 240]
-    vocab_min_freq = [10, 20, 30, 40, 50, 60]
+    batch_size = [12, 240]
+    vocab_min_freq = [10, 60]
 
     arg_values = [
         model, subjects, max_electrodes, window_size, shift, bin_size,
@@ -135,7 +135,7 @@ def main(args):
         ]
         job_name_str = '_'.join([str(item) for item in element])
         file_name = create_script(job_name_str, final_s, args)
-        # os.system(f'sbatch --array=01-{MAX_JOBS} {file_name}')
+        os.system(f'sbatch --array=01-{MAX_JOBS} {file_name}')
         results_folders.append(job_name_str)
 
     gather_results_folders(args, results_folders)

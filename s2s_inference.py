@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import torch.nn as nn
-import sys
 
 
 def translate_neural_signal(CONFIG, vocab, device, model, data_iterator):

@@ -5,6 +5,7 @@ from collections import Counter
 from datetime import datetime
 
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.utils.data as data
@@ -22,10 +23,11 @@ from model_utils import return_model
 from plot_utils import figure5, plot_training
 from rw_utils import print_model, tabulate_and_print
 from s2s_eval_utils import (bigram_accuracy_report, calc_bigram_train_freqs,
-                            concatenate_bigrams, count_unique_predictions,
-                            create_excel_preds, return_bigram_proba,
-                            return_bigram_vocab, save_bigram_counts,
-                            topk_accuracy_report, word_wise_roc)
+                            classify_create_excel_preds, concatenate_bigrams,
+                            count_unique_predictions, create_excel_preds,
+                            return_bigram_proba, return_bigram_vocab,
+                            save_bigram_counts, topk_accuracy_report,
+                            word_wise_roc)
 from s2s_inference import classify_neural_signal, translate_neural_signal
 from train_eval import train, valid
 from utils import fix_random_seed, print_cuda_usage
@@ -187,8 +189,17 @@ print("Evaluating predictions on test set")
 best_model = torch.load(model_name)  # Load best model
 
 if classify:
-    all_trg_y, topk_preds, topk_preds_scores, all_preds = classify_neural_signal(CONFIG, vocab, DEVICE, best_model,
-                                            valid_dl)
+    if not CONFIG["ngrams"]:
+        title = 'word'
+        suffix = 'word'
+        prefix = 'word'
+    else:
+        title = 'bigram'
+        suffix = 'bigram'
+        prefix = 'bigram'
+
+    all_trg_y, topk_preds, topk_preds_scores, all_preds = classify_neural_signal(
+        CONFIG, vocab, DEVICE, best_model, valid_dl)
 
     # Make categorical
     n_examples = len(y_test)
@@ -203,7 +214,8 @@ if classify:
                   i2w,
                   train_freq,
                   CONFIG["SAVE_DIR"],
-                  suffix='val',
+                  prefix=prefix,
+                  suffix=suffix,
                   min_train=args.vocab_min_freq)
 
     print("Evaluating ROC-AUC")
@@ -212,11 +224,96 @@ if classify:
                  i2w,
                  train_freq,
                  CONFIG["SAVE_DIR"],
+                 title=title,
+                 suffix=suffix,
                  do_plot=not args.no_plot,
                  min_train=args.vocab_min_freq)
 
     if CONFIG["ngrams"]:
-        valid_preds_df = create_excel_preds(all_trg_y, topk_preds, all_preds, i2w)
+        (train_all_trg_y, train_topk_preds, train_topk_preds_scores,
+         train_all_preds) = classify_neural_signal(CONFIG, vocab, DEVICE,
+                                                   best_model, train_dl)
+        (valid_all_trg_y, valid_topk_preds, valid_topk_preds_scores,
+         valid_all_preds) = classify_neural_signal(CONFIG, vocab, DEVICE,
+                                                   best_model, valid_dl)
+
+        valid_preds_df = classify_create_excel_preds(
+            CONFIG, torch.tensor(valid_all_trg_y), valid_topk_preds,
+            torch.tensor(valid_all_preds), i2w)
+
+        train_preds_df = classify_create_excel_preds(
+            CONFIG, torch.tensor(train_all_trg_y), train_topk_preds,
+            torch.tensor(train_all_preds), i2w)
+
+        count_unique_predictions(CONFIG, valid_preds_df, 'word1')
+        count_unique_predictions(CONFIG, valid_preds_df, 'word2')
+
+        print("Printing Top-k Accuracy reports")
+        topk_accuracy_report(CONFIG,
+                             train_preds_df,
+                             valid_preds_df,
+                             word_str='word1')
+        topk_accuracy_report(CONFIG,
+                             train_preds_df,
+                             valid_preds_df,
+                             word_str='word2')
+        topk_accuracy_report(CONFIG,
+                             train_preds_df,
+                             valid_preds_df,
+                             word_str='bigram')
+
+        new = train_preds_df['bigram'].str.split("_", n=1, expand=True)
+
+        word2freq1, n_classes1, w2i1, i2w1 = create_vocab(
+            CONFIG, new[0].tolist())
+        word2freq2, n_classes2, w2i2, i2w2 = create_vocab(
+            CONFIG, new[1].tolist())
+
+        train_freqs1 = {w2i1[key]: val for key, val in word2freq1.items()}
+        train_freqs2 = {w2i2[key]: val for key, val in word2freq2.items()}
+
+        remove_tokens = [
+            CONFIG["begin_token"], CONFIG["end_token"], CONFIG["oov_token"],
+            CONFIG["pad_token"]
+        ]
+
+        dictList1, dictList2 = [], []
+        for row_np, row_df in zip(valid_all_preds, valid_preds_df.iterrows()):
+            word1_row = [
+                row for i, row in row_df[1].iteritems()
+                if i.startswith('word1_')
+            ]
+            word2_row = [
+                row for i, row in row_df[1].iteritems()
+                if i.startswith('word2_')
+            ]
+            d1 = {k: 0 for k in w2i1.keys()}
+            d2 = {k: 0 for k in w2i2.keys()}
+            for key, value in zip(word1_row, row_np):
+                d1[key] += value
+            dictList1.append(d1)
+            for key, value in zip(word2_row, row_np):
+                d2[key] += value
+            dictList2.append(d2)
+        word1_df = pd.DataFrame(dictList1)
+        word2_df = pd.DataFrame(dictList2)
+
+        word_wise_roc(CONFIG,
+                      w2i1,
+                      valid_preds_df,
+                      torch.tensor(word1_df.values),
+                      train_freqs1,
+                      remove_tokens,
+                      i2w1,
+                      string='word1')
+        word_wise_roc(CONFIG,
+                      w2i2,
+                      valid_preds_df,
+                      torch.tensor(word2_df.values),
+                      train_freqs2,
+                      remove_tokens,
+                      i2w2,
+                      string='word2')
 
 else:
     print("Start of postprocessing seq2seq results")

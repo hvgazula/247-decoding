@@ -43,6 +43,20 @@ def calc_rank1(x, string, all_preds):
     return ranks
 
 
+def classify_calc_rank1(x, string, all_preds):
+    ranks = []
+
+    pred_ranks = torch.argsort(all_preds, dim=1, descending=True)
+
+    for i, word in enumerate(x):
+        try:
+            rank = np.where(word == pred_ranks[i])[0][0]
+        except IndexError:
+            rank = np.nan
+        ranks.append(rank)
+    return ranks
+
+
 def fill_topk_cols(x, string):
     rank = x['_'.join([string, 'rank'])]
 
@@ -60,7 +74,7 @@ def fill_topk_cols(x, string):
     return abc
 
 
-def apply_rank(df, all_preds, string=None):
+def apply_rank(CONFIG, df, all_preds, string=None):
     if not str:
         print("Bad String")
         return 0
@@ -69,14 +83,19 @@ def apply_rank(df, all_preds, string=None):
     top_col_names = ['_'.join([string, 't' + str(i)]) for i in [1, 5, 10]]
 
     # df[rank_word] = df.apply(calc_rank, axis=1, args=(string, ))
-    df[rank_word] = calc_rank1(df[string].tolist(), string, all_preds)
+    if CONFIG["classify"]:
+        df[rank_word] = classify_calc_rank1(df[string].tolist(), string,
+                                            all_preds)
+    else:
+        df[rank_word] = calc_rank1(df[string].tolist(), string, all_preds)
+
     df[top_col_names] = pd.DataFrame(
         df.apply(fill_topk_cols, axis=1, args=(string, )).tolist())
 
     return df
 
 
-def create_excel_preds(targets, top_predictions, all_preds, i2w):
+def create_excel_preds(CONFIG, targets, top_predictions, all_preds, i2w):
     """Map predictions to words
 
     Args:
@@ -95,14 +114,60 @@ def create_excel_preds(targets, top_predictions, all_preds, i2w):
         for i in range(1, 11)
     ]
 
-    df = apply_rank(df, all_preds, string='word1')
-    df = apply_rank(df, all_preds, string='word2')
+    df = apply_rank(CONFIG, df, all_preds, string='word1')
+    df = apply_rank(CONFIG, df, all_preds, string='word2')
 
     df[pred_col_names] = pd.DataFrame(top_predictions.numpy()[:, :20])
 
     df[pred_col_names] = df[pred_col_names].replace(i2w)
     df['word1'] = df['word1'].replace(i2w)
     df['word2'] = df['word2'].replace(i2w)
+
+    return df
+
+
+def classify_create_excel_preds(CONFIG, targets, top_predictions, all_preds,
+                                i2w):
+    """Map predictions to words
+
+    Args:
+        targets (torch.tensor): actual targets
+        top_predictions (torch.tensor): top k predictions from the model
+        all_preds (torch.tensor): all predictions from the model
+        i2w (dict): index to word dictionary
+
+    Returns:
+        DataFrame: targets and top predictions mapped to words
+    """
+    df = pd.DataFrame(targets.numpy(), columns=['bigram'])
+    pred_col_names = [
+        '_'.join([word, str(i).zfill(2)]) for word in ['bigram']
+        for i in range(1, 11)
+    ]
+
+    df = apply_rank(CONFIG, df, all_preds, string='bigram')
+
+    df[pred_col_names] = pd.DataFrame(top_predictions.numpy()[:, :10])
+    df[pred_col_names] = df[pred_col_names].replace(i2w)
+    df['bigram'] = df['bigram'].replace(i2w)
+
+    df = split_bigrams(df, 1)
+    df = split_bigrams(df, 0)
+
+    # new = df['bigram'].str.split("_", n=1, expand=True)
+    # word1_set = set(new[0].tolist())
+    # word2_set = set(new[1].tolist())
+    # w1_w2i = {word: i for i, word in enumerate(word1_set)}
+    # w2_w2i = {word: i for i, word in enumerate(word2_set)}
+    # w1_i2w = {v: k for k, v in w1_w2i.items()}
+    # w2_i2w = {v: k for k, v in w2_w2i.items()}
+    # word1_df = df[[col for col in df if col.startswith('word1')]]
+    # word2_df = df[[col for col in df if col.startswith('word2')]]
+    # word1_df_rep = word1_df.replace(w1_w2i)
+    # word2_df_rep = word2_df.replace(w2_w2i)
+
+    # df1 = apply_rank(CONFIG, word1_df_rep, all_preds, string='word1')
+    # df2 = apply_rank(CONFIG, word2_df_rep, all_preds, string='word2')
 
     return df
 
@@ -163,17 +228,22 @@ def word_wise_roc(CONFIG,
                   string=None):
     n_classes = len(vocab)
 
-    if string == 'word1':
-        col_range = range(n_classes * 0, n_classes * 1)
-    elif string == 'word2':
-        col_range = range(n_classes * 1, n_classes * 2)
+    if CONFIG["classify"]:
+        predictions = valid_all_preds.numpy()
     else:
-        sys.exit('Wrong Word')
+        if string == 'word1':
+            col_range = range(n_classes * 0, n_classes * 1)
+        elif string == 'word2':
+            col_range = range(n_classes * 1, n_classes * 2)
+        else:
+            sys.exit('Wrong Word')
+
+        predictions = valid_all_preds.numpy()[:, col_range]
 
     true = np.array(valid_preds_df[string].replace(vocab).tolist())
     labels = np.zeros((true.size, true.max() + 1))
     labels[np.arange(true.size), true] = 1
-    predictions = valid_all_preds.numpy()[:, col_range]
+
     evaluate_topk(predictions,
                   true,
                   i2w,
@@ -535,3 +605,26 @@ def count_unique_predictions(CONFIG, df, string):
         fh.write(f'Number of unique outputs: {len(uniq_outputs)}\n')
         fh.write(
             f'Number of unique outputs (which are correct): {len(corr_preds)}')
+
+
+def split_bigrams(df, orig_str=0):
+    if orig_str:
+        bigram_columns = ['bigram']
+    else:
+        bigram_columns = [
+            '_'.join(['bigram', str(num).zfill(2)]) for num in range(1, 11)
+        ]
+
+    for idx, column in enumerate(bigram_columns, 1):
+        new = df[column].str.split("_", n=1, expand=True)
+        if orig_str:
+            word1, word2 = 'word1', 'word2'
+        else:
+            word1, word2 = [
+                '_'.join([word, str(idx).zfill(2)])
+                for word in ['word1', 'word2']
+            ]
+        df[word1] = new[0]
+        df[word2] = new[1]
+
+    return df
