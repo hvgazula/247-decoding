@@ -55,9 +55,9 @@ def create_script(job_name_str, s_list, args):
         fh.write("#SBATCH --mem=16G\n")
         fh.write("#SBATCH --time=0-02:00:00\n")
         fh.write(f"#SBATCH --gres=gpu:{ALLOCATE_GPUS}\n")
-        fh.write("#SBATCH --mail-type=begin\n")
+        fh.write("##SBATCH --mail-type=begin\n")
         fh.write("#SBATCH --mail-type=fail\n")
-        fh.write("#SBATCH --mail-type=end\n")
+        fh.write("##SBATCH --mail-type=end\n")
         fh.write("#SBATCH --mail-user=hvgazula@umich.edu\n")
         fh.write("\n")
         fh.write("module purge\n")
@@ -84,7 +84,7 @@ def create_script(job_name_str, s_list, args):
 
 
 def experiment_configuration():
-    model = ["PITOM", "ConvNet10", "MeNTAlmini"]
+    model = ["PITOM", "ConvNet10", "MeNTALmini"]
     subjects = [625, 676]
     max_electrodes = [55]
     window_size = np.arange(350, 2001, 450).tolist()
