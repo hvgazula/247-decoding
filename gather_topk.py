@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 PRJCT_FOLDER = os.getcwd()
-EXP_FOLDER = 'TestRuns'
+EXP_FOLDER = 'Experiments_Wednesday'
 PARENT_DIR = os.path.join(PRJCT_FOLDER, EXP_FOLDER)
 
 
@@ -73,7 +73,7 @@ def whatever_function(word_type, topk_file, auc_summary):
     topk_dict_list = [dict(zip(topk_cols, item)) for item in big_abc]
     df1 = pd.DataFrame(dict_list)
     df2 = pd.DataFrame(topk_dict_list)
-    df3 = pd.DataFrame(big_auc, columns=['auc_w_avg'])
+    df3 = pd.DataFrame(big_auc, columns=[word_type + '-auc_w_avg'])
 
     df = pd.concat([df2, df3], axis=1)
 
