@@ -29,7 +29,8 @@ def whatever_function(word_type, topk_file, auc_summary):
     arg_strings = [
         'model', 'subjects', 'max-electrodes', 'window-size', 'shift',
         'bin-size', 'weight-decay', 'tf-dropout', 'tf-nlayer', 'tf-nhead',
-        'tf-dmodel', 'tf-dff', 'temp', 'lr', 'gpus', 'epochs', 'batch-size'
+        'tf-dmodel', 'tf-dff', 'temp', 'lr', 'gpus', 'epochs', 'batch-size',
+        'vocab-min-freq'
     ]
 
     topk_cols = [
@@ -81,10 +82,9 @@ def whatever_function(word_type, topk_file, auc_summary):
 
 
 df_bigram, df = whatever_function('bigram', 'topk-bigram.txt',
-                              'auc-summary-bigram')
+                                  'auc-summary-bigram')
 df_word1, _ = whatever_function('word1', 'topk-word1.txt', 'auc-summary-word1')
 df_word2, _ = whatever_function('word2', 'topk-word2.txt', 'auc-summary-word2')
-
 
 final_df = pd.concat([df, df_bigram, df_word1, df_word2], axis=1)
 
