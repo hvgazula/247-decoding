@@ -14,6 +14,7 @@ from transformers import AdamW
 
 from arg_parser import arg_parser
 from build_matrices import build_design_matrices
+from classification_eval import word_pred_scores
 from config import build_config
 from dl_utils import Brain2TextDataset, MyCollator, pitom_collate
 from eval_utils import evaluate_roc, evaluate_topk
@@ -39,7 +40,7 @@ results_str = start_time.strftime("%Y%m%d%H%M")  # results folder prefix
 
 args = arg_parser()  # parse command line arguments
 CONFIG = build_config(args, results_str)
-sys.stdout = open(CONFIG["LOG_FILE"], 'w')
+# sys.stdout = open(CONFIG["LOG_FILE"], 'w')
 
 DEVICE = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print(f'Start Time: {date_str}')
@@ -277,26 +278,10 @@ if classify:
             CONFIG["pad_token"]
         ]
 
-        dictList1, dictList2 = [], []
-        for row_np, row_df in zip(valid_all_preds, valid_preds_df.iterrows()):
-            word1_row = [
-                row for i, row in row_df[1].iteritems()
-                if i.startswith('word1_')
-            ]
-            word2_row = [
-                row for i, row in row_df[1].iteritems()
-                if i.startswith('word2_')
-            ]
-            d1 = {k: 0 for k in w2i1.keys()}
-            d2 = {k: 0 for k in w2i2.keys()}
-            for key, value in zip(word1_row, row_np):
-                d1[key] += value
-            dictList1.append(d1)
-            for key, value in zip(word2_row, row_np):
-                d2[key] += value
-            dictList2.append(d2)
-        word1_df = pd.DataFrame(dictList1)
-        word2_df = pd.DataFrame(dictList2)
+        word1_df = word_pred_scores(valid_all_preds, valid_preds_df, w2i1,
+                                    'word1')
+        word2_df = word_pred_scores(valid_all_preds, valid_preds_df, w2i2,
+                                    'word2')
 
         word_wise_roc(CONFIG,
                       w2i1,

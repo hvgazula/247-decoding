@@ -3,6 +3,7 @@ from collections import Counter
 from pprint import pprint
 
 import numpy as np
+import pandas as pd
 import torch
 import torch.nn as nn
 
@@ -67,3 +68,39 @@ def report_classification(CONFIG, args, DEVICE, model, data_iterator):
     print("Saving results")
     with open(CONFIG["SAVE_DIR"] + "results.json", "w") as fp:
         json.dump(res, fp, indent=4)
+
+
+def word_pred_scores(valid_all_preds, valid_preds_df, w2i, string=None):
+    dictList1 = []
+
+    string = check_string(string)
+
+    for row_np, row_df in zip(valid_all_preds, valid_preds_df.iterrows()):
+        word1_row = [
+            row for i, row in row_df[1].iteritems() if i.startswith(string)
+        ]
+        d1 = {k: 0 for k in w2i}
+        for key, value in zip(word1_row, row_np):
+            d1[key] += value
+        dictList1.append(d1)
+    word1_df = pd.DataFrame(dictList1)
+
+    return word1_df
+
+
+def check_string(string=None):
+    """Check String Validity
+
+    Args:
+        string ([type], optional): [description]. Defaults to None.
+
+    Raises:
+        Exception: [description]
+
+    Returns:
+        str: appends '_' to input string
+    """
+    if not string:
+        raise Exception("Wrong String")
+    else:
+        return string + '_'
