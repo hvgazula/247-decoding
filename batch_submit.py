@@ -4,11 +4,6 @@ from itertools import product
 
 import numpy as np
 
-ALLOCATE_GPUS = 1
-NGRAM_FLAG = 1
-NSEQ_FLAG = 0
-MAX_JOBS = 5
-
 
 def experiment_folder(args):
     return os.path.join(os.getcwd(), args.experiment_suffix)
@@ -24,6 +19,14 @@ def contains_exclude_dict(superitem, exclude):
 def gather_results_folders(args, folder_list):
     output_file = os.path.join(experiment_folder(args), 'folder_list')
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
+    if os.path.exists(output_file):
+        with open(output_file, 'r') as file_h:
+            prev_lines = file_h.readlines()
+        prev_lines = [item.rstrip() for item in prev_lines]
+
+        folder_list = sorted(set(folder_list) - set(prev_lines))
+
     with open(output_file, 'a+') as file_h:
         file_h.writelines(folder + '\n' for folder in folder_list)
 
@@ -53,7 +56,7 @@ def create_script(job_name_str, s_list, args):
         fh.write("#SBATCH --ntasks-per-node=1\n")
         fh.write("#SBATCH --cpus-per-task=2\n")
         fh.write("#SBATCH --mem=16G\n")
-        fh.write("#SBATCH --time=0-02:00:00\n")
+        fh.write(f"#SBATCH --time={ALLOCATE_TIME}\n")
         fh.write(f"#SBATCH --gres=gpu:{ALLOCATE_GPUS}\n")
         fh.write("##SBATCH --mail-type=begin\n")
         fh.write("#SBATCH --mail-type=fail\n")
@@ -83,13 +86,20 @@ def create_script(job_name_str, s_list, args):
     return file_name
 
 
+ALLOCATE_GPUS = 1
+ALLOCATE_TIME = 75
+NGRAM_FLAG = 1
+NSEQ_FLAG = 0
+MAX_JOBS = 5
+
+
 def experiment_configuration():
-    model = ["PITOM", "ConvNet10", "MeNTALmini"]
-    subjects = [625, 676]
+    model = ["MeNTALmini"]
+    subjects = [625]
     max_electrodes = [55, 64]
-    window_size = np.arange(350, 2001, 150).tolist()
+    window_size = np.arange(350, 2001, 200).tolist()
     shift = [0]
-    bin_size = [25, 50, 75]
+    bin_size = [50]
     tf_weight_decay = [0.01]
     tf_dropout = tf_weight_decay
     tf_nlayer = [3]
@@ -101,7 +111,7 @@ def experiment_configuration():
     gpus = [2]
     epochs = [100]
     batch_size = [12, 48, 96, 144, 192, 240]
-    vocab_min_freq = [10, 20, 30, 40, 50, 60, 70]
+    vocab_min_freq = [10, 20, 30, 40, 50, 60]
 
     arg_values = [
         model, subjects, max_electrodes, window_size, shift, bin_size,
@@ -119,6 +129,20 @@ def experiment_configuration():
     return arg_values, arg_strings
 
 
+def already_exists(args, job_string):
+    output_file = os.path.join(experiment_folder(args), 'folder_list')
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
+    if not os.path.exists(output_file):
+        return False
+
+    with open(output_file, 'r') as file_h:
+        prev_lines = file_h.readlines()
+    prev_lines = [item.rstrip() for item in prev_lines]
+
+    return job_string in prev_lines
+
+
 def main(args):
     arg_values, arg_strings = experiment_configuration()
     args_dict = dict(zip(arg_strings, arg_values))
@@ -134,9 +158,11 @@ def main(args):
             ' '.join(str(f) for f in tup) for tup in element_dict.items()
         ]
         job_name_str = '_'.join([str(item) for item in element])
-        file_name = create_script(job_name_str, final_s, args)
-        os.system(f'sbatch --array=01-{MAX_JOBS} {file_name}')
-        results_folders.append(job_name_str)
+
+        if not already_exists(args, job_name_str):
+            file_name = create_script(job_name_str, final_s, args)
+            if not os.system(f'sbatch --array=01-{MAX_JOBS} {file_name}'):
+                results_folders.append(job_name_str)
 
     gather_results_folders(args, results_folders)
 
