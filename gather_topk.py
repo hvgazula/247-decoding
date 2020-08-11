@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 PRJCT_FOLDER = os.getcwd()
-EXP_FOLDER = 'Experiments_Wednesday'
+EXP_FOLDER = 'experiments-pitom'
 PARENT_DIR = os.path.join(PRJCT_FOLDER, EXP_FOLDER)
 
 
@@ -49,34 +49,43 @@ def whatever_function(word_type, topk_file, auc_summary):
     folder_list = [item.rstrip() for item in folder_list]
 
     dict_list = []
-    big_abc, big_auc = [], []
+    big_abc, big_auc, big_n_classes = [], [], []
     for folder in folder_list:
         exp_config = folder.split('_')
         dict_list.append(dict(zip(arg_strings, exp_config)))
-        abc, jkl = [], []
+        abc, jkl, nclass = [], [], []
         full_folder_path = os.path.join(PARENT_DIR, folder)
         trials = os.listdir(full_folder_path)
         for trial in trials:
             topk_file_path = os.path.join(full_folder_path, trial,
                                           TOPK_FILE_NAME)
             auc_file_path = os.path.join(full_folder_path, trial, AUC_SUMMARY)
+            output_file_path = os.path.join(full_folder_path, trial, 'output')
             with open(topk_file_path, 'r') as file_h:
                 topk_lines = file_h.readlines()[2:5]
             flat_list = flatten_list(
                 [extract_floats(line.split('\t')[1]) for line in topk_lines])
             with open(auc_file_path, 'r') as file_h:
                 avg_auc = json.load(file_h)['rocauc_w_avg']
+            with open(output_file_path, 'r') as file_h:
+                for idx, line in enumerate(file_h):
+                    if idx == 14:
+                        n_classes = int(line.split(':')[-1].lstrip())
             jkl.append(avg_auc)
             abc.append(flat_list)
+            nclass.append(n_classes)
         big_abc.append(average_trials(abc))
         big_auc.append(sum(jkl) / len(jkl))
+        big_n_classes.append(int(sum(nclass) / len(nclass)))
 
     topk_dict_list = [dict(zip(topk_cols, item)) for item in big_abc]
     df1 = pd.DataFrame(dict_list)
     df2 = pd.DataFrame(topk_dict_list)
     df3 = pd.DataFrame(big_auc, columns=[word_type + '-auc_w_avg'])
+    df4 = pd.DataFrame(big_n_classes, columns=['n_classes'])
 
     df = pd.concat([df2, df3], axis=1)
+    df1 = pd.concat([df1, df4], axis=1)
 
     return df, df1
 
