@@ -1,4 +1,5 @@
 import argparse
+import copy
 import os
 from itertools import product
 
@@ -87,17 +88,17 @@ def create_script(job_name_str, s_list, args):
 
 
 ALLOCATE_GPUS = 1
-ALLOCATE_TIME = 75
+ALLOCATE_TIME = 105
 NGRAM_FLAG = 1
 NSEQ_FLAG = 0
 MAX_JOBS = 5
 
 
 def experiment_configuration():
-    model = ["MeNTALmini"]
-    subjects = [625]
+    model = ["PITOM", "MeNTALmini"]
+    subjects = [676]
     max_electrodes = [55, 64]
-    window_size = np.arange(350, 2001, 200).tolist()
+    window_size = [['175', '175'], ['175', '250']]
     shift = [0]
     bin_size = [50]
     tf_weight_decay = [0.01]
@@ -110,8 +111,8 @@ def experiment_configuration():
     lr = [1e-4]
     gpus = [2]
     epochs = [100]
-    batch_size = [12, 48, 96, 144, 192, 240]
-    vocab_min_freq = [10, 20, 30, 40, 50, 60]
+    batch_size = [240]
+    vocab_min_freq = [20, 40, 60]
 
     arg_values = [
         model, subjects, max_electrodes, window_size, shift, bin_size,
@@ -151,18 +152,24 @@ def main(args):
     results_folders = []
     for element in a:
         element_dict = dict(zip(arg_strings, element))
+        element_dict1 = copy.deepcopy(element_dict)
+        for k, v in element_dict.items():
+            if isinstance(v, list):
+                element_dict[k] = ' '.join([str(elem) for elem in v])
+                element_dict1[k] = ''.join([str(elem) for elem in v])
 
         if contains_exclude_dict(element_dict, create_exclude_dicts()):
             continue
         final_s = [
             ' '.join(str(f) for f in tup) for tup in element_dict.items()
         ]
-        job_name_str = '_'.join([str(item) for item in element])
+        job_name_str1 = '_'.join(
+            [str(value) for value in element_dict1.values()])
 
-        if not already_exists(args, job_name_str):
-            file_name = create_script(job_name_str, final_s, args)
+        if not already_exists(args, job_name_str1):
+            file_name = create_script(job_name_str1, final_s, args)
             if not os.system(f'sbatch --array=01-{MAX_JOBS} {file_name}'):
-                results_folders.append(job_name_str)
+                results_folders.append(job_name_str1)
 
     gather_results_folders(args, results_folders)
 
