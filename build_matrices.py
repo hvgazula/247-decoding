@@ -74,8 +74,7 @@ def build_design_matrices(CONFIG,
             if (seq_length <= 0):
                 continue
 
-            if test_for_bad_window(start_onset, end_onset, ecogs.shape,
-                                   signal_param_dict['window_fs']):
+            if test_for_bad_window(start_onset, end_onset, ecogs.shape):
                 continue
 
             labels.append(gram[0])

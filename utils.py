@@ -117,8 +117,9 @@ def calculate_windows_params(CONFIG, gram, param_dict):
     if CONFIG["classify"] and CONFIG["ngrams"] and not CONFIG["nseq"]:
         num_bins = 50
     elif CONFIG["classify"] and not CONFIG["ngrams"] and not CONFIG["nseq"]:  # fixed number of bins
-        half_window = param_dict["half_window"]
-        num_bins = len(range(-half_window, half_window, param_dict["bin_fs"]))
+        left_window = param_dict["left_window"]
+        right_window = param_dict["right_window"]
+        num_bins = len(range(-left_window, right_window, param_dict["bin_fs"]))
     else:
         num_bins = int(
             math.ceil((end_window - begin_window) / param_dict['bin_fs']))
@@ -137,35 +138,43 @@ def convert_ms_to_fs(CONFIG, fs=512):
         dict: parameters for extracting neural signals
     """
     window_ms = CONFIG["window_size"]
+    if len(window_ms) == 1:
+        window_fs = int(window_ms / 1000 * fs)
+        half_window = window_fs // 2
+        left_window = half_window
+        right_window = half_window
+    else:
+        left_window = int(window_ms[0] / 1000 * fs)
+        right_window = int(window_ms[1] / 1000 * fs)
+
     shift_ms = CONFIG["shift"]
     bin_ms = CONFIG["bin_size"]
 
     bin_fs = int(bin_ms / 1000 * fs)
     shift_fs = int(shift_ms / 1000 * fs)
-    window_fs = int(window_ms / 1000 * fs)
-    half_window = window_fs // 2
-    start_offset = -half_window + shift_fs
-    end_offset = half_window + shift_fs
+    start_offset = -left_window + shift_fs
+    end_offset = right_window + shift_fs
 
     signal_param_dict = dict()
     signal_param_dict['bin_fs'] = bin_fs
     signal_param_dict['shift_fs'] = shift_fs
-    signal_param_dict['window_fs'] = window_fs
-    signal_param_dict['half_window'] = half_window
+    # signal_param_dict['window_fs'] = window_fs
+    signal_param_dict['left_window'] = left_window
+    signal_param_dict['right_window'] = right_window
     signal_param_dict['start_offset'] = start_offset
     signal_param_dict['end_offset'] = end_offset
 
     return signal_param_dict
 
 
-def test_for_bad_window(start, stop, shape, window):
+def test_for_bad_window(start, stop, shape):
     # if the window_begin is less than 0 or
     # check if onset is within limits
     # if the window_end is less than 0 or
     # if the window_end is outside the signal
     # if there are not enough frames in the window
     return (start < 0 or start > shape[0] or stop < 0 or stop > shape[0]
-            or stop - start < window or stop - start < 0)
+            or stop - start < 0)
 
 
 def print_cuda_usage(CONFIG):

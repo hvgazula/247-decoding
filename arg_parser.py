@@ -61,7 +61,8 @@ def arg_parser(default_args: Optional[List] = None):
     parser.add_argument('--gpus', type=int, default=4)
     parser.add_argument('--epochs', type=int, default=50)
     parser.add_argument('--batch-size', type=int, default=48)
-    parser.add_argument('--window-size', type=int, default=2000)
+    # parser.add_argument('--window-size', type=int, default=2000)
+    parser.add_argument('--window-size', nargs='*', type=int, action='append')
     parser.add_argument('--bin-size', type=int, default=50)
     parser.add_argument('--init-model', type=str, default=None)
     parser.add_argument('--no-plot', action='store_false', default=False)
@@ -102,5 +103,14 @@ def arg_parser(default_args: Optional[List] = None):
         assert len(args.subjects) == len(
             args.max_electrodes
         ), "Number of items for max-electrodes must match number of subjects"
+
+    if not args.window_size:
+        args.window_size = [2000]
+    else:
+        args.window_size = [
+            item for sublist in args.window_size for item in sublist
+        ]
+        if len(args.window_size) > 2:
+            raise Exception("Invalid number of window sizes")
 
     return args
