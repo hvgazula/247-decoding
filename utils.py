@@ -139,7 +139,7 @@ def convert_ms_to_fs(CONFIG, fs=512):
     """
     window_ms = CONFIG["window_size"]
     if len(window_ms) == 1:
-        window_fs = int(window_ms / 1000 * fs)
+        window_fs = int(window_ms[0] / 1000 * fs)
         half_window = window_fs // 2
         left_window = half_window
         right_window = half_window
