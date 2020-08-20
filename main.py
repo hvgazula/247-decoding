@@ -5,7 +5,6 @@ from collections import Counter
 from datetime import datetime
 
 import numpy as np
-import pandas as pd
 import torch
 import torch.nn as nn
 import torch.utils.data as data
@@ -22,6 +21,7 @@ from filter_utils import filter_by_labels, filter_by_signals
 from gram_utils import transform_labels
 from model_utils import return_model
 from plot_utils import figure5, plot_training
+from pytorchtools import EarlyStopping
 from rw_utils import print_model, tabulate_and_print
 from s2s_eval_utils import (bigram_accuracy_report, calc_bigram_train_freqs,
                             classify_create_excel_preds, concatenate_bigrams,
@@ -139,6 +139,9 @@ history = {
     'valid_acc': []
 }
 
+# initialize the early_stopping object
+early_stopping = EarlyStopping(patience=20, verbose=True)
+
 model_name = "%s%s.pt" % (CONFIG["SAVE_DIR"], CONFIG["model"])
 
 lr = CONFIG["lr"]
@@ -173,12 +176,19 @@ for epoch in range(1, CONFIG["epochs"] + 1):
     history['valid_loss'].append(valid_loss)
     history['valid_acc'].append(valid_acc)
 
-    # Store best model so far
-    if valid_loss < best_val_loss:
-        best_model, best_val_loss = model, valid_loss
-        model_to_save = best_model.module if hasattr(best_model,
-                                                     'module') else best_model
-        torch.save(model_to_save, model_name)
+    # early_stopping needs the validation loss to check if it has decresed, 
+    # and if it has, it will make a checkpoint of the current model
+    early_stopping(valid_loss, model)
+    if early_stopping.early_stop:
+        print("Early stopping")
+        break
+
+    # # Store best model so far
+    # if valid_loss < best_val_loss:
+    #     best_model, best_val_loss = model, valid_loss
+    #     model_to_save = best_model.module if hasattr(best_model,
+    #                                                  'module') else best_model
+    #     torch.save(model_to_save, model_name)
 
     # Additional Info when using cuda
     print_cuda_usage(CONFIG) if DEVICE.type == 'cuda' else None
@@ -187,17 +197,15 @@ print('Printing Loss Curves')
 plot_training(CONFIG, history)
 
 print("Evaluating predictions on test set")
-best_model = torch.load(model_name)  # Load best model
+# best_model = torch.load(model_name)  # Load best model
+# load the last checkpoint with the best model
+model.load_state_dict(torch.load('checkpoint.pt'))
 
 if classify:
     if not CONFIG["ngrams"]:
-        title = 'word'
-        suffix = 'word'
-        prefix = 'word'
+        title, suffix, prefix = ['word'] * 3
     else:
-        title = 'bigram'
-        suffix = 'bigram'
-        prefix = 'bigram'
+        title, suffix, prefix = ['bigram'] * 3
 
     all_trg_y, topk_preds, topk_preds_scores, all_preds = classify_neural_signal(
         CONFIG, vocab, DEVICE, best_model, valid_dl)
