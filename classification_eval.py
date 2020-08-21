@@ -5,6 +5,18 @@ import torch.nn as nn
 
 
 def classify_neural_signal(CONFIG, vocab, device, model, data_iterator):
+    """Infers the class given the neural signal
+
+    Args:
+        CONFIG (dict): Configuration object
+        vocab (dict): The vocabulary dictionary
+        device ([type]): 'cpu' or 'gpu'
+        model ([type]): the model object
+        data_iterator ([type]): data loader object
+
+    Returns:
+        tuple: (targets, topk predictions, scores, predictions)
+    """    
     start, end = 0, 0
     softmax = nn.Softmax(dim=1)
     all_preds = np.zeros((len(data_iterator.dataset), len(vocab)),
@@ -31,6 +43,17 @@ def classify_neural_signal(CONFIG, vocab, device, model, data_iterator):
 
 
 def word_pred_scores(valid_all_preds, valid_preds_df, w2i, string=None):
+    """[summary]
+
+    Args:
+        valid_all_preds ([type]): Validation set predictions
+        valid_preds_df ([type]): validation set predictions as dataframe
+        w2i (dict): word to index dictionary
+        string (str, optional): 'word1' or 'word2'. Defaults to None.
+
+    Returns:
+        dataframe: [description]
+    """    
     dictList1 = []
 
     string = check_string(string)
