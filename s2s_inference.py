@@ -26,8 +26,9 @@ def translate_neural_signal(CONFIG, vocab, device, model, data_iterator):
 
     softmax = nn.Softmax(dim=1)
 
-    if CONFIG["gpus"]:
-        model.to(device)
+    if isinstance(model, torch.nn.DataParallel):
+        model = model.module
+    model.to(device)
 
     # Calculate all predictions on test set
     with torch.no_grad():
@@ -72,10 +73,10 @@ def translate_neural_signal(CONFIG, vocab, device, model, data_iterator):
 
 
 def classify_neural_signal(CONFIG, vocab, device, model, data_iterator):
-    if CONFIG["gpus"]:
-        if CONFIG["gpus"] > 1:
-            model = nn.DataParallel(model)
-        model.to(device)
+    # if CONFIG["gpus"]:
+    #     if CONFIG["gpus"] > 1:
+    #         model = nn.DataParallel(model)
+    #     model.to(device)
 
     start, end = 0, 0
     softmax = nn.Softmax(dim=1)

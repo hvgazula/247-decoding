@@ -139,10 +139,10 @@ history = {
     'valid_acc': []
 }
 
-# initialize the early_stopping object
-early_stopping = EarlyStopping(patience=20, verbose=True)
-
 model_name = "%s%s.pt" % (CONFIG["SAVE_DIR"], CONFIG["model"])
+
+# initialize the early_stopping object
+early_stopping = EarlyStopping(patience=20, verbose=True, path=model_name)
 
 lr = CONFIG["lr"]
 for epoch in range(1, CONFIG["epochs"] + 1):
@@ -176,19 +176,12 @@ for epoch in range(1, CONFIG["epochs"] + 1):
     history['valid_loss'].append(valid_loss)
     history['valid_acc'].append(valid_acc)
 
-    # early_stopping needs the validation loss to check if it has decresed, 
+    # early_stopping needs the validation loss to check if it has decresed,
     # and if it has, it will make a checkpoint of the current model
     early_stopping(valid_loss, model)
     if early_stopping.early_stop:
         print("Early stopping")
         break
-
-    # # Store best model so far
-    # if valid_loss < best_val_loss:
-    #     best_model, best_val_loss = model, valid_loss
-    #     model_to_save = best_model.module if hasattr(best_model,
-    #                                                  'module') else best_model
-    #     torch.save(model_to_save, model_name)
 
     # Additional Info when using cuda
     print_cuda_usage(CONFIG) if DEVICE.type == 'cuda' else None
@@ -199,7 +192,7 @@ plot_training(CONFIG, history)
 print("Evaluating predictions on test set")
 # best_model = torch.load(model_name)  # Load best model
 # load the last checkpoint with the best model
-model.load_state_dict(torch.load('checkpoint.pt'))
+model.load_state_dict(torch.load(model_name))
 
 if classify:
     if not CONFIG["ngrams"]:
@@ -317,10 +310,10 @@ else:
      valid_all_preds) = translate_neural_signal(CONFIG, vocab, DEVICE,
                                                 best_model, valid_dl)
 
-    valid_preds_df = create_excel_preds(valid_all_trg_y, valid_topk_preds,
-                                        valid_all_preds, i2w)
-    train_preds_df = create_excel_preds(train_all_trg_y, train_topk_preds,
-                                        train_all_preds, i2w)
+    valid_preds_df = create_excel_preds(CONFIG, valid_all_trg_y,
+                                        valid_topk_preds, valid_all_preds, i2w)
+    train_preds_df = create_excel_preds(CONFIG, train_all_trg_y,
+                                        train_topk_preds, train_all_preds, i2w)
 
     count_unique_predictions(CONFIG, valid_preds_df, 'word1')
     count_unique_predictions(CONFIG, valid_preds_df, 'word2')
