@@ -1,4 +1,6 @@
 import torch
+import torch.utils.data as data
+
 from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import Dataset
 
@@ -113,3 +115,26 @@ def pitom_collate(batch):
         padding_value=0.)
 
     return xx_pad, torch.tensor(yy)
+
+
+def create_dl_objects(CONFIG, train_ds, valid_ds, vocab):
+    classify = CONFIG["classify"]
+
+    if classify and not CONFIG["nseq"]:
+        my_collator = None
+    elif classify and CONFIG["nseq"]:
+        my_collator = pitom_collate
+    else:
+        my_collator = MyCollator(CONFIG, vocab)
+
+    train_dl = data.DataLoader(train_ds,
+                               batch_size=CONFIG["batch_size"],
+                               shuffle=True,
+                               num_workers=CONFIG["num_cpus"],
+                               collate_fn=my_collator)
+    valid_dl = data.DataLoader(valid_ds,
+                               batch_size=CONFIG["batch_size"],
+                               num_workers=CONFIG["num_cpus"],
+                               collate_fn=my_collator)
+
+    return train_dl, valid_dl

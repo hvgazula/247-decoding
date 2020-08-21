@@ -7,7 +7,6 @@ from datetime import datetime
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.utils.data as data
 from sklearn.model_selection import train_test_split
 from transformers import AdamW
 
@@ -15,7 +14,7 @@ from arg_parser import arg_parser
 from build_matrices import build_design_matrices
 from classification_eval import classify_neural_signal, word_pred_scores
 from config import build_config
-from dl_utils import Brain2TextDataset, MyCollator, pitom_collate
+from dl_utils import Brain2TextDataset, create_dl_objects
 from eval_utils import evaluate_roc, evaluate_topk
 from filter_utils import filter_by_labels, filter_by_signals
 from gram_utils import transform_labels
@@ -92,22 +91,7 @@ train_ds = Brain2TextDataset(X_train, y_train)
 valid_ds = Brain2TextDataset(X_test, y_test)
 
 print('Creating DataLoader Objects')
-if classify and not CONFIG["nseq"]:
-    my_collator = None
-elif classify and CONFIG["nseq"]:
-    my_collator = pitom_collate
-else:
-    my_collator = MyCollator(CONFIG, vocab)
-
-train_dl = data.DataLoader(train_ds,
-                           batch_size=CONFIG["batch_size"],
-                           shuffle=True,
-                           num_workers=CONFIG["num_cpus"],
-                           collate_fn=my_collator)
-valid_dl = data.DataLoader(valid_ds,
-                           batch_size=CONFIG["batch_size"],
-                           num_workers=CONFIG["num_cpus"],
-                           collate_fn=my_collator)
+train_dl, valid_dl = create_dl_objects(CONFIG, train_ds, valid_ds, vocab)
 
 model = return_model(CONFIG, vocab)
 
