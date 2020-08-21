@@ -70,34 +70,3 @@ def translate_neural_signal(CONFIG, vocab, device, model, data_iterator):
         all_preds = valid_bi_preds.view(data_set_len, -1)
 
     return all_trg_y, topk_preds, topk_preds_scores, all_preds
-
-
-def classify_neural_signal(CONFIG, vocab, device, model, data_iterator):
-    # if CONFIG["gpus"]:
-    #     if CONFIG["gpus"] > 1:
-    #         model = nn.DataParallel(model)
-    #     model.to(device)
-
-    start, end = 0, 0
-    softmax = nn.Softmax(dim=1)
-    all_preds = np.zeros((len(data_iterator.dataset), len(vocab)),
-                         dtype=np.float32)
-    print('Allocating', np.prod(all_preds.shape) * 5 / 1e9, 'GB')
-
-    # Calculate all predictions on test set
-    with torch.no_grad():
-        model.eval()
-        for batch in data_iterator:
-            src = batch[0].to(device)
-            end = start + src.size(0)
-            out = model(src)
-            if src.shape[0] == 1:
-                out = out.view(1, -1)
-            out = softmax(out)
-            all_preds[start:end, :] = out.cpu()
-            start = end
-
-    topk_preds_scores, topk_preds = torch.topk(torch.tensor(all_preds), 10)
-    _, all_trg_y = zip(*data_iterator.dataset.examples)
-
-    return all_trg_y, topk_preds, topk_preds_scores, all_preds

@@ -13,7 +13,7 @@ from transformers import AdamW
 
 from arg_parser import arg_parser
 from build_matrices import build_design_matrices
-from classification_eval import word_pred_scores
+from classification_eval import classify_neural_signal, word_pred_scores
 from config import build_config
 from dl_utils import Brain2TextDataset, MyCollator, pitom_collate
 from eval_utils import evaluate_roc, evaluate_topk
@@ -29,7 +29,7 @@ from s2s_eval_utils import (bigram_accuracy_report, calc_bigram_train_freqs,
                             return_bigram_proba, return_bigram_vocab,
                             save_bigram_counts, topk_accuracy_report,
                             word_wise_roc)
-from s2s_inference import classify_neural_signal, translate_neural_signal
+from s2s_inference import translate_neural_signal
 from train_eval import train, valid
 from utils import fix_random_seed, print_cuda_usage
 from vocab_builder import create_vocab
