@@ -1,12 +1,13 @@
 import json
 import os
 import re
+import sys
 
 import numpy as np
 import pandas as pd
 
 PRJCT_FOLDER = os.getcwd()
-EXP_FOLDER = 'experiments-unequal-window-676'
+EXP_FOLDER = sys.argv[1]
 PARENT_DIR = os.path.join(PRJCT_FOLDER, EXP_FOLDER)
 
 
@@ -20,9 +21,7 @@ def flatten_list(big_list):
 
 
 def average_trials(item):
-    array = np.array(item)
-    mean_array = np.mean(array, axis=0)
-    return mean_array.tolist()
+    return np.mean(item, axis=0).tolist()
 
 
 def return_class_size(output_file_path):
@@ -62,8 +61,8 @@ def whatever_function(word_type, topk_file, auc_summary):
 
     topk_cols = ['-'.join([word_type, item]) for item in topk_cols]
 
-    TOPK_FILE_NAME = topk_file
-    AUC_SUMMARY = auc_summary
+    topk_file_name = topk_file
+    auc_summary = auc_summary
     folder_list_file = os.path.join(PARENT_DIR, 'folder_list')
 
     with open(folder_list_file, 'r') as file_h:
@@ -81,8 +80,8 @@ def whatever_function(word_type, topk_file, auc_summary):
         trials = sorted(os.listdir(full_folder_path))
         for trial in trials:
             topk_file_path = os.path.join(full_folder_path, trial,
-                                          TOPK_FILE_NAME)
-            auc_file_path = os.path.join(full_folder_path, trial, AUC_SUMMARY)
+                                          topk_file_name)
+            auc_file_path = os.path.join(full_folder_path, trial, auc_summary)
             output_file_path = os.path.join(full_folder_path, trial, 'output')
 
             flat_list = return_topk_list(topk_file_path)
