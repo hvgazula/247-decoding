@@ -122,8 +122,7 @@ def build_config(args, results_str):
 
     CONFIG["num_features"] = sum(CONFIG["max_electrodes"])
 
-    DIR_DICT = dict(classify=classify,
-                    gpus=gpus)
+    DIR_DICT = dict(classify=classify, gpus=gpus)
 
     CONFIG = create_directory_paths(CONFIG, args, results_str)
 
@@ -144,3 +143,19 @@ def write_config(dictionary):
     config_file = os.path.join(dictionary['SAVE_DIR'], 'config.json')
     with open(config_file, "w") as outfile:
         outfile.write(json_object)
+
+
+def read_config(results_folder):
+    """Read configuration from to a file
+
+    Args:
+        results_folder (str): experiment folder from which to read config.json
+
+    Returns:
+        dict: configuration object
+    """
+    PROJ_FOLDER = os.getcwd()
+    CONFIG_FILE_PATH = os.path.join(PROJ_FOLDER, results_folder, 'config.json')
+    with open(CONFIG_FILE_PATH, 'r') as file_h:
+        CONFIG = json.load(file_h)
+    return CONFIG
