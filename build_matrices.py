@@ -36,6 +36,9 @@ def build_design_matrices(CONFIG,
     cumsum_electrodes.insert(0, 0)
 
     signals, labels = [], []
+
+    full_signal, binned_signal = [], []
+    full_stitch_index, bin_stitch_index = [], []
     for conversation, suffix, idx, electrodes in convs:
 
         try:  # Check if files exists
@@ -48,6 +51,26 @@ def build_design_matrices(CONFIG,
         ecogs = return_electrode_array(conversation, electrodes)
         if not ecogs.size:
             print(f'Bad Conversation: {conversation}')
+            continue
+
+        if CONFIG['pickle']:
+            full_signal.append(ecogs)
+            full_stitch_index.append(ecogs.shape[0])
+
+            split_indices = np.arange(32, ecogs.shape[0], 32)
+            convo_binned_signal = np.vsplit(ecogs, split_indices)
+            if convo_binned_signal[-1].shape[0] < 32:
+                convo_binned_signal.pop(-1)
+
+            mean_binned_signal = [
+                np.mean(split, axis=0) for split in convo_binned_signal
+            ]
+
+            mean_binned_signal = np.vstack(mean_binned_signal)
+            bin_stitch_index.append(mean_binned_signal.shape[0])
+
+            binned_signal.append(mean_binned_signal)
+
             continue
 
         examples = return_examples(datum_fn, delimiter, exclude_words,
@@ -85,11 +108,21 @@ def build_design_matrices(CONFIG,
                     np.array_split(ecogs[start_onset:end_onset, :],
                                    n_bins,
                                    axis=0)):
-                word_signal[i, cumsum_electrodes[idx]:cumsum_electrodes[
-                    idx + 1]] = f.mean(axis=0)
+                word_signal[
+                    i, cumsum_electrodes[idx]:cumsum_electrodes[idx +
+                                                                1]] = f.mean(
+                                                                    axis=0)
 
             # TODO Data Augmentation
             signals.append(word_signal)
+
+    if CONFIG['pickle']:
+        full_signal = np.concatenate(full_signal)
+        full_stitch_index = np.cumsum(full_stitch_index)
+
+        binned_signal = np.vstack(binned_signal)
+        bin_stitch_index = np.cumsum(bin_stitch_index)
+        return full_signal, full_stitch_index, binned_signal, bin_stitch_index
 
     print(f'Total number of conversations: {len(convs)}')
     print(f'Number of samples is: {len(signals)}')

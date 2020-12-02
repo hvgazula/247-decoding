@@ -26,7 +26,7 @@ def create_vocab(CONFIG, y_train):
 
     word_freq = Counter()
     min_freq = CONFIG["vocab_min_freq"]
-    
+
     word_freq.update(y_train if classify else chain.from_iterable(y_train))
 
     tokens_to_add = [
