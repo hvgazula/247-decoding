@@ -30,8 +30,8 @@ def main():
 
         full_signal_dict = dict(full_signal=full_signal,
                                 full_stitch_index=full_stitch_index)
-        binned_signal_dict = dict(binned_signal=full_signal,
-                                  binned_stitch_index=full_stitch_index)
+        binned_signal_dict = dict(binned_signal=binned_signal,
+                                  bin_stitch_index=bin_stitch_index)
 
         with open('625_full_signal.pkl', 'wb') as fh:
             pickle.dump(full_signal_dict, fh)
@@ -48,8 +48,10 @@ def main():
                                for i in sub_list]
             new_labels.extend(modified_labels)
 
+        print(len(new_labels))
+
         with open('625_labels.pkl', 'wb') as fh:
-            pickle.dump(labels, fh)
+            pickle.dump(new_labels, fh)
 
     return
 
