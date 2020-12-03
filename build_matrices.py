@@ -39,6 +39,7 @@ def build_design_matrices(CONFIG,
 
     full_signal, binned_signal = [], []
     full_stitch_index, bin_stitch_index = [], []
+    all_examples = []
     for conversation, suffix, idx, electrodes in convs:
 
         try:  # Check if files exists
@@ -70,6 +71,11 @@ def build_design_matrices(CONFIG,
             bin_stitch_index.append(mean_binned_signal.shape[0])
 
             binned_signal.append(mean_binned_signal)
+
+            examples = return_examples(datum_fn, delimiter, exclude_words,
+                                       CONFIG["vocabulary"])
+
+            all_examples.append(examples)
 
             continue
 
@@ -118,11 +124,12 @@ def build_design_matrices(CONFIG,
 
     if CONFIG['pickle']:
         full_signal = np.concatenate(full_signal)
-        full_stitch_index = np.cumsum(full_stitch_index)
+        full_stitch_index = np.cumsum(full_stitch_index).tolist()
 
         binned_signal = np.vstack(binned_signal)
-        bin_stitch_index = np.cumsum(bin_stitch_index)
-        return full_signal, full_stitch_index, binned_signal, bin_stitch_index
+        bin_stitch_index = np.cumsum(bin_stitch_index).tolist()
+        return (full_signal, full_stitch_index, binned_signal,
+                bin_stitch_index, all_examples)
 
     print(f'Total number of conversations: {len(convs)}')
     print(f'Number of samples is: {len(signals)}')

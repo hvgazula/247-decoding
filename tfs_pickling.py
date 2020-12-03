@@ -9,6 +9,9 @@ Copyright (c) 2020 Your Company
 '''
 import pickle
 from datetime import datetime
+from pprint import pprint
+import pandas as pd
+import sys
 
 from arg_parser import arg_parser
 from build_matrices import build_design_matrices
@@ -20,18 +23,33 @@ def main():
     CONFIG = build_config(args, results_str='test')
 
     if CONFIG['pickle']:
-        pickle_output = build_design_matrices(CONFIG,
-                                              delimiter=" ",
-                                              aug_shift_ms=[-1000, -500])
+        (full_signal, full_stitch_index, binned_signal, bin_stitch_index,
+         labels) = build_design_matrices(CONFIG,
+                                         delimiter=" ",
+                                         aug_shift_ms=[-1000, -500])
 
-        keys = [
-            'full_signal', 'full_stitch_index', 'binned_signal',
-            'bin_stitch_index'
-        ]
-        records = dict(zip(keys, pickle_output))
+        full_signal_dict = dict(full_signal=full_signal,
+                                full_stitch_index=full_stitch_index)
+        binned_signal_dict = dict(binned_signal=full_signal,
+                                  binned_stitch_index=full_stitch_index)
 
-        with open('625_data_pickle', 'wb') as fh:
-            pickle.dump(records, fh)
+        with open('625_full_signal.pkl', 'wb') as fh:
+            pickle.dump(full_signal_dict, fh)
+
+        with open('625_binned_signal.pkl', 'wb') as fh:
+            pickle.dump(binned_signal_dict, fh)
+
+        full_stitch_index.insert(0, 0)
+        full_stitch_index.pop(-1)
+
+        new_labels = []
+        for start, sub_list in zip(full_stitch_index, labels):
+            modified_labels = [(*i[0], i[1], i[2] + start, i[3] + start)
+                               for i in sub_list]
+            new_labels.extend(modified_labels)
+
+        with open('625_labels.pkl', 'wb') as fh:
+            pickle.dump(labels, fh)
 
     return
 
