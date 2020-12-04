@@ -11,6 +11,7 @@ import pickle
 from datetime import datetime
 
 import pandas as pd
+from pprint import pprint
 
 from arg_parser import arg_parser
 from build_matrices import build_design_matrices
@@ -22,7 +23,8 @@ def main():
     CONFIG = build_config(args, results_str='test')
 
     if CONFIG['pickle']:
-        (full_signal, full_stitch_index, binned_signal, bin_stitch_index,
+        (full_signal, full_stitch_index, trimmed_signal, trimmed_stitch_index,
+         binned_signal, bin_stitch_index,
          labels) = build_design_matrices(CONFIG,
                                          delimiter=" ",
                                          aug_shift_ms=[-1000, -500])
@@ -35,6 +37,9 @@ def main():
         with open('625_full_signal.pkl', 'wb') as fh:
             pickle.dump(full_signal_dict, fh)
 
+        with open('625_trimmed_signal.pkl', 'wb') as fh:
+            pickle.dump(full_signal_dict, fh)
+
         with open('625_binned_signal.pkl', 'wb') as fh:
             pickle.dump(binned_signal_dict, fh)
 
@@ -43,14 +48,19 @@ def main():
 
         new_labels = []
         for start, sub_list in zip(full_stitch_index, labels):
-            modified_labels = [(*i[0], i[1], i[2] + start, i[3] + start)
+            modified_labels = [(*i[0], i[1], i[2] + start, i[3] + start, i[4])
                                for i in sub_list]
             new_labels.extend(modified_labels)
 
-        print(len(new_labels))
+
+        df = pd.DataFrame(
+            new_labels[:10],
+            columns=['word', 'speaker', 'onset', 'offset', 'accuracy'])
+
+        print(df.to_dict('records'))
 
         with open('625_labels.pkl', 'wb') as fh:
-            pickle.dump(new_labels, fh)
+            pickle.dump(df.to_dict('records'), fh)
 
     return
 

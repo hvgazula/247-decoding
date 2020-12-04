@@ -1,6 +1,7 @@
 import glob
 
 import numpy as np
+from pprint import pprint
 
 from electrode_utils import return_electrode_array
 from gram_utils import generate_bigrams, generate_unigrams, remove_duplicates
@@ -37,8 +38,8 @@ def build_design_matrices(CONFIG,
 
     signals, labels = [], []
 
-    full_signal, binned_signal = [], []
-    full_stitch_index, bin_stitch_index = [], []
+    full_signal, trimmed_signal, binned_signal = [], [], []
+    full_stitch_index, trimmed_stitch_index, bin_stitch_index = [], [], []
     all_examples = []
     for conversation, suffix, idx, electrodes in convs:
 
@@ -55,14 +56,33 @@ def build_design_matrices(CONFIG,
             continue
 
         if CONFIG['pickle']:
-            bin_size = 32  # 62.5 ms
-            full_signal.append(ecogs)
-            full_stitch_index.append(ecogs.shape[0])
+            bin_size = 32  # 62.5 ms (62.5/1000 * 512)
+            signal_length = ecogs.shape[0]
 
-            split_indices = np.arange(bin_size, ecogs.shape[0], bin_size)
+            split_indices = np.arange(bin_size, signal_length, bin_size)
+
+            full_signal.append(ecogs)
+            full_stitch_index.append(signal_length)
+
+            if signal_length < bin_size:
+                print("Ignoring conversation: Small signal")
+                continue
+
+            examples = return_examples(datum_fn, delimiter, exclude_words,
+                                       CONFIG["vocabulary"])
+
             convo_binned_signal = np.vsplit(ecogs, split_indices)
+
             if convo_binned_signal[-1].shape[0] < bin_size:
                 convo_binned_signal.pop(-1)
+                examples = list(
+                    filter(lambda x: x[2] < split_indices[-1], examples))
+                stop = split_indices[-1]
+            else:
+                stop = signal_length
+
+            trimmed_signal.append(ecogs[:stop])
+            trimmed_stitch_index.append(stop)
 
             mean_binned_signal = [
                 np.mean(split, axis=0) for split in convo_binned_signal
@@ -72,9 +92,6 @@ def build_design_matrices(CONFIG,
             bin_stitch_index.append(mean_binned_signal.shape[0])
 
             binned_signal.append(mean_binned_signal)
-
-            examples = return_examples(datum_fn, delimiter, exclude_words,
-                                       CONFIG["vocabulary"])
 
             all_examples.append(examples)
 
@@ -129,8 +146,9 @@ def build_design_matrices(CONFIG,
 
         binned_signal = np.vstack(binned_signal)
         bin_stitch_index = np.cumsum(bin_stitch_index).tolist()
-        return (full_signal, full_stitch_index, binned_signal,
-                bin_stitch_index, all_examples)
+        return (full_signal, full_stitch_index, trimmed_signal,
+                trimmed_stitch_index, binned_signal, bin_stitch_index,
+                all_examples)
 
     print(f'Total number of conversations: {len(convs)}')
     print(f'Number of samples is: {len(signals)}')
