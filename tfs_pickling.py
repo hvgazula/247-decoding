@@ -13,6 +13,8 @@ from datetime import datetime
 import pandas as pd
 from pprint import pprint
 
+from nltk.stem import PorterStemmer
+
 from arg_parser import arg_parser
 from build_matrices import build_design_matrices
 from config import build_config
@@ -47,11 +49,11 @@ def main():
         full_stitch_index.pop(-1)
 
         new_labels = []
-        for start, sub_list in zip(full_stitch_index, labels):
-            modified_labels = [(*i[0], i[1], i[2] + start, i[3] + start, i[4])
-                               for i in sub_list]
+        ps = PorterStemmer()
+        for start, sub_list in zip(trimmed_stitch_index, labels):
+            modified_labels = [(ps.stem(*i[0]), i[1], i[2] + start,
+                                i[3] + start, i[4]) for i in sub_list]
             new_labels.extend(modified_labels)
-
 
         df = pd.DataFrame(
             new_labels[:10],

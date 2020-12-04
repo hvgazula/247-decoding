@@ -130,7 +130,7 @@ def return_examples(file, delim, ex_words, vocab_str='std'):
                 z for y in x[0:-4]
                 if (z := y.lower().strip().replace('"', '')) not in ex_words
             ]), x[-1].strip(), x[-4], x[-3], x[-2]), lines)
-        examples = filter(lambda x: len(x[0]) > 0, examples)
+        examples = filter(lambda x: len(x[0]) == 1, examples)
         if vocab_str == 'spm':
             examples = map(
                 lambda x:
