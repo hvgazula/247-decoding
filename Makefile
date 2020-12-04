@@ -10,4 +10,4 @@ tfs-pickle:
 				--pickle;
 
 upload-pickle: tfs-pickle
-	gsutil -m cp -r 625*.pkl gs://247-podcast-data/247_pickles/
+	gsutil -m cp -r $(SID)*.pkl gs://247-podcast-data/247_pickles/
