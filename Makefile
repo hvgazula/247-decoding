@@ -11,5 +11,5 @@ create-pickle:
 				--max-electrodes $(MEL) \
 				--pickle;
 
-upload-pickle: tfs-pickle
+upload-pickle: create-pickle
 	gsutil -m cp -r $(SID)*.pkl gs://247-podcast-data/247_pickles/
