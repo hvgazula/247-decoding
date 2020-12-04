@@ -45,8 +45,8 @@ def main():
         with open('625_binned_signal.pkl', 'wb') as fh:
             pickle.dump(binned_signal_dict, fh)
 
-        full_stitch_index.insert(0, 0)
-        full_stitch_index.pop(-1)
+        trimmed_stitch_index.insert(0, 0)
+        trimmed_stitch_index.pop(-1)
 
         new_labels = []
         ps = PorterStemmer()
@@ -56,7 +56,7 @@ def main():
             new_labels.extend(modified_labels)
 
         df = pd.DataFrame(
-            new_labels[:10],
+            new_labels,
             columns=['word', 'speaker', 'onset', 'offset', 'accuracy'])
 
         print(df.to_dict('records'))
