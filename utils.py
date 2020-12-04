@@ -1,3 +1,4 @@
+import glob
 import math
 import os
 import random
@@ -34,6 +35,50 @@ def fix_random_seed(CONFIG):
     torch.cuda.manual_seed_all(SEED)
 
 
+def extract_elec_ids(conversation):
+    """[summary]
+
+    Args:
+        conversation ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
+    elec_files = glob.glob(os.path.join(conversation, 'preprocessed', '*.mat'))
+    elec_files = sorted(
+        elec_files, key=lambda x: int(os.path.splitext(x)[0].split('_')[-1]))
+
+    elec_ids_list = list(
+        map(lambda x: int(os.path.splitext(x)[0].split('_')[-1]), elec_files))
+
+    return elec_ids_list
+
+
+def update_convs(convs):
+    """[summary]
+
+    Args:
+        convs ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """    
+    all_elec_ids_list = []
+    for conversation, *_, electrodes in convs:
+
+        elect_ids_list = extract_elec_ids(conversation)
+
+        if not electrodes or len(electrodes) > len(elect_ids_list):
+            electrodes = elect_ids_list
+
+        all_elec_ids_list.append(electrodes)
+
+    common_electrodes = list(set.intersection(*map(set, all_elec_ids_list)))
+
+    convs = [(*conv[:3], common_electrodes) for conv in convs]
+    return convs
+
+
 def return_conversations(CONFIG):
     """Returns list of conversations
 
@@ -47,7 +92,10 @@ def return_conversations(CONFIG):
     conversations = []
 
     for conv_dir in CONFIG["CONV_DIRS"]:
-        conversation_list = os.listdir(conv_dir)
+        conversation_list = [
+            os.path.basename(x)
+            for x in glob.glob(os.path.join(conv_dir, '*conversation*'))
+        ]
         conversations.append(conversation_list)
 
     convs = [
@@ -56,6 +104,8 @@ def return_conversations(CONFIG):
             zip(CONFIG["CONV_DIRS"], conversations, CONFIG["datum_suffix"],
                 CONFIG["electrode_list"])) for conv_name in convs
     ]
+
+    convs = update_convs(convs)
 
     return convs
 

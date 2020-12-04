@@ -16,7 +16,7 @@ def classify_neural_signal(CONFIG, vocab, device, model, data_iterator):
 
     Returns:
         tuple: (targets, topk predictions, scores, predictions)
-    """    
+    """
     start, end = 0, 0
     softmax = nn.Softmax(dim=1)
     all_preds = np.zeros((len(data_iterator.dataset), len(vocab)),
@@ -53,7 +53,7 @@ def word_pred_scores(valid_all_preds, valid_preds_df, w2i, string=None):
 
     Returns:
         dataframe: [description]
-    """    
+    """
     dictList1 = []
 
     string = check_string(string)

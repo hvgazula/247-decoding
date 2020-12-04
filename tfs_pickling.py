@@ -9,9 +9,8 @@ Copyright (c) 2020 Your Company
 '''
 import pickle
 from datetime import datetime
-from pprint import pprint
+
 import pandas as pd
-import sys
 
 from arg_parser import arg_parser
 from build_matrices import build_design_matrices

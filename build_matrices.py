@@ -55,12 +55,13 @@ def build_design_matrices(CONFIG,
             continue
 
         if CONFIG['pickle']:
+            bin_size = 32  # 62.5 ms
             full_signal.append(ecogs)
             full_stitch_index.append(ecogs.shape[0])
 
-            split_indices = np.arange(32, ecogs.shape[0], 32)
+            split_indices = np.arange(bin_size, ecogs.shape[0], bin_size)
             convo_binned_signal = np.vsplit(ecogs, split_indices)
-            if convo_binned_signal[-1].shape[0] < 32:
+            if convo_binned_signal[-1].shape[0] < bin_size:
                 convo_binned_signal.pop(-1)
 
             mean_binned_signal = [
