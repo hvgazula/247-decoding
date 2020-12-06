@@ -41,7 +41,7 @@ def build_design_matrices(CONFIG,
     full_signal, trimmed_signal, binned_signal = [], [], []
     full_stitch_index, trimmed_stitch_index, bin_stitch_index = [], [], []
     all_examples = []
-    for conversation, suffix, idx, electrodes in convs[:2]:
+    for conversation, suffix, idx, electrodes in convs:
 
         print(os.path.basename(conversation))
         try:  # Check if files exists
@@ -78,8 +78,7 @@ def build_design_matrices(CONFIG,
             split_indices = np.arange(bin_size, signal_length, bin_size)
             convo_binned_signal = np.vsplit(ecogs, split_indices)
 
-            examples = list(filter(lambda x: x[3] < signal_length,
-                                   examples))[:5]
+            examples = list(filter(lambda x: x[3] < signal_length, examples))
 
             trimmed_signal.append(ecogs)
             trimmed_stitch_index.append(signal_length)
