@@ -49,7 +49,7 @@ def build_design_matrices(CONFIG,
             print('File DNE: ', conversation + suffix)
             continue
 
-        # Extract electrode data
+        # Extract electrode data (signal_length, num_electrodes)
         ecogs = return_electrode_array(conversation, electrodes)
         if not ecogs.size:
             print(f'Bad Conversation: {conversation}')
@@ -76,7 +76,7 @@ def build_design_matrices(CONFIG,
             if convo_binned_signal[-1].shape[0] < bin_size:
                 convo_binned_signal.pop(-1)
                 examples = list(
-                    filter(lambda x: x[2] < split_indices[-1], examples))
+                    filter(lambda x: x[3] < split_indices[-1], examples))
                 stop = split_indices[-1]
             else:
                 stop = signal_length
@@ -144,11 +144,14 @@ def build_design_matrices(CONFIG,
         full_signal = np.concatenate(full_signal)
         full_stitch_index = np.cumsum(full_stitch_index).tolist()
 
+        trimmed_signal = np.concatenate(trimmed_signal)
+        trimmed_stitch_index = np.cumsum(trimmed_stitch_index).tolist()
+
         binned_signal = np.vstack(binned_signal)
         bin_stitch_index = np.cumsum(bin_stitch_index).tolist()
         return (full_signal, full_stitch_index, trimmed_signal,
                 trimmed_stitch_index, binned_signal, bin_stitch_index,
-                all_examples)
+                all_examples, electrodes)
 
     print(f'Total number of conversations: {len(convs)}')
     print(f'Number of samples is: {len(signals)}')

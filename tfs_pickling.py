@@ -11,7 +11,6 @@ import pickle
 from datetime import datetime
 
 import pandas as pd
-from pprint import pprint
 
 from nltk.stem import PorterStemmer
 
@@ -26,21 +25,28 @@ def main():
 
     if CONFIG['pickle']:
         (full_signal, full_stitch_index, trimmed_signal, trimmed_stitch_index,
-         binned_signal, bin_stitch_index,
-         labels) = build_design_matrices(CONFIG,
-                                         delimiter=" ",
-                                         aug_shift_ms=[-1000, -500])
+         binned_signal, bin_stitch_index, labels,
+         electrodes) = build_design_matrices(CONFIG,
+                                             delimiter=" ",
+                                             aug_shift_ms=[-1000, -500])
 
         full_signal_dict = dict(full_signal=full_signal,
-                                full_stitch_index=full_stitch_index)
+                                full_stitch_index=full_stitch_index,
+                                electrodes=electrodes)
+
+        trimmed_signal_dict = dict(trimmed_signal=full_signal,
+                                   trimmed_stitch_index=full_stitch_index,
+                                   electrodes=electrodes)
+
         binned_signal_dict = dict(binned_signal=binned_signal,
-                                  bin_stitch_index=bin_stitch_index)
+                                  bin_stitch_index=bin_stitch_index,
+                                  electrodes=electrodes)
 
         with open('625_full_signal.pkl', 'wb') as fh:
             pickle.dump(full_signal_dict, fh)
 
         with open('625_trimmed_signal.pkl', 'wb') as fh:
-            pickle.dump(full_signal_dict, fh)
+            pickle.dump(trimmed_signal_dict, fh)
 
         with open('625_binned_signal.pkl', 'wb') as fh:
             pickle.dump(binned_signal_dict, fh)
