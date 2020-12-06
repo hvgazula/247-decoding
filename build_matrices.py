@@ -65,9 +65,11 @@ def build_design_matrices(CONFIG,
 
             full_signal.append(ecogs)
             full_stitch_index.append(signal_length)
+            a = ecogs.shape[0]
 
             examples = return_examples(datum_fn, delimiter, exclude_words,
                                        CONFIG["vocabulary"])
+            b = len(examples)
 
             cutoff_portion = signal_length % bin_size
             if cutoff_portion:
@@ -94,8 +96,8 @@ def build_design_matrices(CONFIG,
 
             all_examples.append(examples)
 
-            print(os.path.basename(conversation), len(examples), ecogs.shape,
-                  mean_binned_signal.shape)
+            print(os.path.basename(conversation), a, b, ecogs.shape[0],
+                  len(examples), mean_binned_signal.shape[0])
 
             continue
 

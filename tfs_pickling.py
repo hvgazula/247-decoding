@@ -56,7 +56,6 @@ def main():
 
         new_labels = []
         ps = PorterStemmer()
-        size = 0
         for start, sub_list in zip(trimmed_stitch_index, labels):
             modified_labels = [(ps.stem(*i[0]), i[1], i[2] + start,
                                 i[3] + start, i[4]) for i in sub_list]
