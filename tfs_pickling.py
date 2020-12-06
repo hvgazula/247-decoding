@@ -8,6 +8,7 @@ Description: Contains code to pickle 247 data
 Copyright (c) 2020 Your Company
 '''
 import pickle
+import sys
 from datetime import datetime
 
 import pandas as pd
@@ -24,7 +25,7 @@ def main():
 
     if CONFIG['pickle']:
         (full_signal, full_stitch_index, trimmed_signal, trimmed_stitch_index,
-         binned_signal, bin_stitch_index, labels,
+         binned_signal, bin_stitch_index, labels, convo_example_size,
          electrodes) = build_design_matrices(CONFIG,
                                              delimiter=" ",
                                              aug_shift_ms=[-1000, -500])
@@ -55,6 +56,7 @@ def main():
 
         new_labels = []
         ps = PorterStemmer()
+        size = 0
         for start, sub_list in zip(trimmed_stitch_index, labels):
             modified_labels = [(ps.stem(*i[0]), i[1], i[2] + start,
                                 i[3] + start, i[4]) for i in sub_list]
@@ -64,8 +66,11 @@ def main():
             new_labels,
             columns=['word', 'speaker', 'onset', 'offset', 'accuracy'])
 
+        labels_dict = dict(labels=df.to_dict('records'),
+                           convo_label_size=convo_example_size)
+
         with open('625_labels.pkl', 'wb') as fh:
-            pickle.dump(df.to_dict('records'), fh)
+            pickle.dump(labels_dict, fh)
 
     return
 
