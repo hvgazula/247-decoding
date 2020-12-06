@@ -1,7 +1,7 @@
 import glob
+import os
 
 import numpy as np
-from pprint import pprint
 
 from electrode_utils import return_electrode_array
 from gram_utils import generate_bigrams, generate_unigrams, remove_duplicates
@@ -41,8 +41,9 @@ def build_design_matrices(CONFIG,
     full_signal, trimmed_signal, binned_signal = [], [], []
     full_stitch_index, trimmed_stitch_index, bin_stitch_index = [], [], []
     all_examples = []
-    for conversation, suffix, idx, electrodes in convs:
+    for conversation, suffix, idx, electrodes in convs[:2]:
 
+        print(os.path.basename(conversation))
         try:  # Check if files exists
             datum_fn = glob.glob(conversation + suffix)[0]
         except IndexError:
@@ -59,30 +60,29 @@ def build_design_matrices(CONFIG,
             bin_size = 32  # 62.5 ms (62.5/1000 * 512)
             signal_length = ecogs.shape[0]
 
-            split_indices = np.arange(bin_size, signal_length, bin_size)
-
-            full_signal.append(ecogs)
-            full_stitch_index.append(signal_length)
-
             if signal_length < bin_size:
                 print("Ignoring conversation: Small signal")
                 continue
 
+            full_signal.append(ecogs)
+            full_stitch_index.append(signal_length)
+
             examples = return_examples(datum_fn, delimiter, exclude_words,
                                        CONFIG["vocabulary"])
 
+            cutoff_portion = signal_length % bin_size
+            if cutoff_portion:
+                ecogs = ecogs[:-cutoff_portion, :]
+                signal_length = ecogs.shape[0]
+
+            split_indices = np.arange(bin_size, signal_length, bin_size)
             convo_binned_signal = np.vsplit(ecogs, split_indices)
 
-            if convo_binned_signal[-1].shape[0] < bin_size:
-                convo_binned_signal.pop(-1)
-                examples = list(
-                    filter(lambda x: x[3] < split_indices[-1], examples))
-                stop = split_indices[-1]
-            else:
-                stop = signal_length
+            examples = list(filter(lambda x: x[3] < signal_length,
+                                   examples))[:5]
 
-            trimmed_signal.append(ecogs[:stop])
-            trimmed_stitch_index.append(stop)
+            trimmed_signal.append(ecogs)
+            trimmed_stitch_index.append(signal_length)
 
             mean_binned_signal = [
                 np.mean(split, axis=0) for split in convo_binned_signal

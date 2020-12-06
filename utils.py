@@ -62,7 +62,7 @@ def update_convs(convs):
 
     Returns:
         [type]: [description]
-    """    
+    """
     all_elec_ids_list = []
     for conversation, *_, electrodes in convs:
 
@@ -138,9 +138,8 @@ def return_examples(file, delim, ex_words, vocab_str='std'):
                  int(float(x[3])), int(float(x[4]))), examples)
         elif vocab_str == 'std':
             examples = map(
-                lambda x:
-                (x[0].split(), x[1], int(float(x[2])), int(float(x[3])), int(float(x[4]))),
-                examples)
+                lambda x: (x[0].split(), x[1], int(float(x[2])),
+                           int(float(x[3])), int(float(x[4]))), examples)
         else:
             print("Bad vocabulary string")
         return list(examples)

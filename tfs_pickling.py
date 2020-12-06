@@ -11,7 +11,6 @@ import pickle
 from datetime import datetime
 
 import pandas as pd
-
 from nltk.stem import PorterStemmer
 
 from arg_parser import arg_parser
@@ -34,13 +33,15 @@ def main():
                                 full_stitch_index=full_stitch_index,
                                 electrodes=electrodes)
 
-        trimmed_signal_dict = dict(trimmed_signal=full_signal,
-                                   trimmed_stitch_index=full_stitch_index,
+        trimmed_signal_dict = dict(trimmed_signal=trimmed_signal,
+                                   trimmed_stitch_index=trimmed_stitch_index,
                                    electrodes=electrodes)
 
         binned_signal_dict = dict(binned_signal=binned_signal,
                                   bin_stitch_index=bin_stitch_index,
                                   electrodes=electrodes)
+
+        print(binned_signal_dict)
 
         with open('625_full_signal.pkl', 'wb') as fh:
             pickle.dump(full_signal_dict, fh)
@@ -64,8 +65,6 @@ def main():
         df = pd.DataFrame(
             new_labels,
             columns=['word', 'speaker', 'onset', 'offset', 'accuracy'])
-
-        print(df.to_dict('records'))
 
         with open('625_labels.pkl', 'wb') as fh:
             pickle.dump(df.to_dict('records'), fh)
