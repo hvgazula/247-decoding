@@ -41,8 +41,6 @@ def main():
                                   bin_stitch_index=bin_stitch_index,
                                   electrodes=electrodes)
 
-        print(binned_signal_dict)
-
         with open('625_full_signal.pkl', 'wb') as fh:
             pickle.dump(full_signal_dict, fh)
 
