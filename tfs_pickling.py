@@ -18,6 +18,10 @@ from build_matrices import build_design_matrices
 from config import build_config
 
 
+def create_dict(*args):
+    return dict(((k, eval(k)) for k in args))
+
+
 def save_pickle(item, file_name):
     if '.pkl' not in file_name:
         file_name = file_name + '.pkl'
@@ -38,17 +42,12 @@ def main():
                                              delimiter=" ",
                                              aug_shift_ms=[-1000, -500])
 
-        full_signal_dict = dict(full_signal=full_signal,
-                                full_stitch_index=full_stitch_index,
-                                electrodes=electrodes)
-
-        trimmed_signal_dict = dict(trimmed_signal=trimmed_signal,
-                                   trimmed_stitch_index=trimmed_stitch_index,
-                                   electrodes=electrodes)
-
-        binned_signal_dict = dict(binned_signal=binned_signal,
-                                  bin_stitch_index=bin_stitch_index,
-                                  electrodes=electrodes)
+        full_signal_dict = create_dict('full_signal', 'full_stitch_index',
+                                       'electrodes')
+        trimmed_signal_dict = create_dict('trimmed_signal',
+                                          'trimmed_stitch_index', 'electrodes')
+        binned_signal_dict = create_dict('binned_signal', 'bin_stitch_index',
+                                         'electrodes')
 
         save_pickle(full_signal_dict, '625_full_signal')
         save_pickle(trimmed_signal_dict, '625_trimmed_signal')
