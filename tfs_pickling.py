@@ -8,7 +8,6 @@ Description: Contains code to pickle 247 data
 Copyright (c) 2020 Your Company
 '''
 import pickle
-import sys
 from datetime import datetime
 
 import pandas as pd
@@ -17,6 +16,15 @@ from nltk.stem import PorterStemmer
 from arg_parser import arg_parser
 from build_matrices import build_design_matrices
 from config import build_config
+
+
+def save_pickle(item, file_name):
+    if '.pkl' not in file_name:
+        file_name = file_name + '.pkl'
+
+    with open(file_name, 'wb') as fh:
+        pickle.dump(item, fh)
+    return
 
 
 def main():
@@ -42,14 +50,9 @@ def main():
                                   bin_stitch_index=bin_stitch_index,
                                   electrodes=electrodes)
 
-        with open('625_full_signal.pkl', 'wb') as fh:
-            pickle.dump(full_signal_dict, fh)
-
-        with open('625_trimmed_signal.pkl', 'wb') as fh:
-            pickle.dump(trimmed_signal_dict, fh)
-
-        with open('625_binned_signal.pkl', 'wb') as fh:
-            pickle.dump(binned_signal_dict, fh)
+        save_pickle(full_signal_dict, '625_full_signal')
+        save_pickle(trimmed_signal_dict, '625_trimmed_signal')
+        save_pickle(binned_signal_dict, '625_binned_signal')
 
         trimmed_stitch_index.insert(0, 0)
         trimmed_stitch_index.pop(-1)
@@ -68,8 +71,7 @@ def main():
         labels_dict = dict(labels=df.to_dict('records'),
                            convo_label_size=convo_example_size)
 
-        with open('625_labels.pkl', 'wb') as fh:
-            pickle.dump(labels_dict, fh)
+        save_pickle(labels_dict, '625_labels')
 
     return
 
