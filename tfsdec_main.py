@@ -8,112 +8,18 @@ Copyright (c) 2020 Your Company
 '''
 import pickle
 import sys
+import argparse
 
+import tensorflow as tf
 import numpy as np
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras.layers import (Activation, BatchNormalization, Conv1D,
                                      Dense, Dropout, GlobalMaxPooling1D, Input,
                                      LayerNormalization, LocallyConnected1D,
-                                     MaxPooling1D, Reshape)
+                                     MaxPooling1D)
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.regularizers import l2
-from tensorflow.keras.utils import to_categorical
-
-
-args = {}
-
-
-
-with open('625_binned_signal.pkl', 'rb') as fh:
-    signal_d = pickle.load(fh)
-
-with open('625_label_folds.pkl', 'rb') as fh:
-    label_folds = pickle.load(fh)
-
-print('Signals pickle info')
-for key in signal_d.keys():
-    print(
-        f'key: {key}, \t type: {type(signal_d[key])}, \t shape: {len(signal_d[key])}'
-    )
-
-assert signal_d['binned_signal'].shape[0] == signal_d['bin_stitch_index'][
-    -1], 'Error: Incorrect Stitching'
-assert signal_d['binned_signal'].shape[1] == len(
-    signal_d['electrodes']), 'Error: Incorrect number of electrodes'
-
-signals = signal_d['binned_signal']
-stitch_index = signal_d['bin_stitch_index']
-# print(signals.shape)
-
-# The first 64 electrodes correspond to the hemisphere of interest
-signals = signals[:, :64]
-# print(signals.shape)
-
-# The labels have been stemmed using Porter Stemming Algorithm
-"""Decoding starts here"""
-# lags = np.arange(-1000, 1001, 100).tolist()
-# lags = np.arange(-800, 8001, 32).tolist()
-
-lag = -160
-lag_in_bin_dim = lag // 32
-half_window = 512 // 32
-
-stitch_index.insert(0, 0)
-
-test_X, test_y = [], []
-for label in label_folds['fold4']:
-    bin_index = label['onset'] // 32
-    bin_rank = (np.array(stitch_index) < bin_index).nonzero()[0][-1]
-    bin_start = stitch_index[bin_rank]
-    bin_stop = stitch_index[bin_rank + 1]
-
-    left_edge = bin_index + lag_in_bin_dim - half_window
-    right_edge = bin_index + lag_in_bin_dim + half_window
-
-    if (left_edge < bin_start) or (right_edge > bin_stop):
-        continue
-    else:
-        test_X.append(signals[left_edge:right_edge, :])
-        test_y.append(label['word'])
-
-val_X, val_y = [], []
-for label in label_folds['fold3']:
-    bin_index = label['onset'] // 32
-    bin_rank = (np.array(stitch_index) < bin_index).nonzero()[0][-1]
-    bin_start = stitch_index[bin_rank]
-    bin_stop = stitch_index[bin_rank + 1]
-
-    left_edge = bin_index + lag_in_bin_dim - half_window
-    right_edge = bin_index + lag_in_bin_dim + half_window
-
-    if (left_edge < bin_start) or (right_edge > bin_stop):
-        continue
-    else:
-        val_X.append(signals[left_edge:right_edge, :])
-        val_y.append(label['word'])
-
-train_X, train_y = [], []
-
-for fold in [label_folds['fold0'], label_folds['fold1'], label_folds['fold2']]:
-    for label in fold:
-        bin_index = label['onset'] // 32
-        bin_rank = (np.array(stitch_index) < bin_index).nonzero()[0][-1]
-        bin_start = stitch_index[bin_rank]
-        bin_stop = stitch_index[bin_rank + 1]
-
-        left_edge = bin_index + lag_in_bin_dim - half_window
-        right_edge = bin_index + lag_in_bin_dim + half_window
-
-        if (left_edge < bin_start) or (right_edge > bin_stop):
-            continue
-        else:
-            train_X.append(signals[left_edge:right_edge, :])
-            train_y.append(label['word'])
-
-print(len(train_X), len(train_y))
-print(len(val_X), len(val_y))
-print(len(test_X), len(test_y))
 
 
 def pitom(input_shapes, n_classes):
@@ -203,3 +109,141 @@ def on_train_end(self, logs=None):
                 break
         self.model.set_weights(w)
         print('Averaged {} weights.'.format(p + 1))
+
+
+args = argparse.Namespace()
+args.patience = 150
+args.verbose = 0
+args.conv_filters = 128
+args.reg = 0.35
+args.dropout = 0.2
+args.reg_head = 0
+args.lr = 0.00025
+
+with open('625_binned_signal.pkl', 'rb') as fh:
+    signal_d = pickle.load(fh)
+
+with open('625_label_folds.pkl', 'rb') as fh:
+    label_folds = pickle.load(fh)
+
+print('Signals pickle info')
+for key in signal_d.keys():
+    print(
+        f'key: {key}, \t type: {type(signal_d[key])}, \t shape: {len(signal_d[key])}'
+    )
+
+assert signal_d['binned_signal'].shape[0] == signal_d['bin_stitch_index'][
+    -1], 'Error: Incorrect Stitching'
+assert signal_d['binned_signal'].shape[1] == len(
+    signal_d['electrodes']), 'Error: Incorrect number of electrodes'
+
+signals = signal_d['binned_signal']
+stitch_index = signal_d['bin_stitch_index']
+# print(signals.shape)
+
+# The first 64 electrodes correspond to the hemisphere of interest
+signals = signals[:, :64]
+# print(signals.shape)
+
+# The labels have been stemmed using Porter Stemming Algorithm
+"""Decoding starts here"""
+# lags = np.arange(-1000, 1001, 100).tolist()
+# lags = np.arange(-800, 8001, 32).tolist()
+
+lag = -160
+lag_in_bin_dim = lag // 32
+half_window = 512 // 32
+
+stitch_index.insert(0, 0)
+
+x_test, w_test = [], []
+for label in label_folds['fold4']:
+    bin_index = label['onset'] // 32
+    bin_rank = (np.array(stitch_index) < bin_index).nonzero()[0][-1]
+    bin_start = stitch_index[bin_rank]
+    bin_stop = stitch_index[bin_rank + 1]
+
+    left_edge = bin_index + lag_in_bin_dim - half_window
+    right_edge = bin_index + lag_in_bin_dim + half_window
+
+    if (left_edge < bin_start) or (right_edge > bin_stop):
+        continue
+    else:
+        x_test.append(signals[left_edge:right_edge, :])
+        w_test.append(label['word'])
+
+x_dev, w_dev = [], []
+for label in label_folds['fold3']:
+    bin_index = label['onset'] // 32
+    bin_rank = (np.array(stitch_index) < bin_index).nonzero()[0][-1]
+    bin_start = stitch_index[bin_rank]
+    bin_stop = stitch_index[bin_rank + 1]
+
+    left_edge = bin_index + lag_in_bin_dim - half_window
+    right_edge = bin_index + lag_in_bin_dim + half_window
+
+    if (left_edge < bin_start) or (right_edge > bin_stop):
+        continue
+    else:
+        x_dev.append(signals[left_edge:right_edge, :])
+        w_dev.append(label['word'])
+
+x_train, w_train = [], []
+for fold in [label_folds['fold0'], label_folds['fold1'], label_folds['fold2']]:
+    for label in fold:
+        bin_index = label['onset'] // 32
+        bin_rank = (np.array(stitch_index) < bin_index).nonzero()[0][-1]
+        bin_start = stitch_index[bin_rank]
+        bin_stop = stitch_index[bin_rank + 1]
+
+        left_edge = bin_index + lag_in_bin_dim - half_window
+        right_edge = bin_index + lag_in_bin_dim + half_window
+
+        if (left_edge < bin_start) or (right_edge > bin_stop):
+            continue
+        else:
+            x_train.append(signals[left_edge:right_edge, :])
+            w_train.append(label['word'])
+
+print(len(x_train), len(w_train))
+print(len(x_dev), len(w_dev))
+print(len(x_test), len(w_test))
+
+x_train = np.stack(x_train, axis=0)
+x_dev = np.stack(x_dev, axis=0)
+x_test = np.stack(x_test, axis=0)
+
+w_train = np.array(w_train)
+w_dev = np.array(w_dev)
+w_test = np.array(w_test)
+
+print(x_train.shape)
+print(x_dev.shape)
+print(x_test.shape)
+
+# Determine indexing
+word2index = {w: i for i, w in enumerate(sorted(set(w_train.tolist())))}
+index2word = {i: word for word, i in word2index.items()}
+
+y_train = np.array([word2index[w] for w in w_train])
+y_dev = np.array([word2index[w] for w in w_dev])
+y_test = np.array([word2index[w] for w in w_test])
+
+print(y_dev)
+
+n_classes = np.unique(y_train).size
+
+stopper = EarlyStopping(monitor='val_cosine_similarity',
+                        mode='max',
+                        patience=args.patience,
+                        restore_best_weights=True,
+                        verbose=args.verbose)
+
+emb_dim = None
+model = pitom([x_train.shape[1:]], n_classes=emb_dim)
+optimizer = Adam(lr=args.lr)
+model.compile(loss='mse',
+              optimizer=optimizer,
+              metrics=[tf.keras.metrics.CosineSimilarity()])
+
+
