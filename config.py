@@ -27,7 +27,7 @@ def return_config_dict():
             "that's", "the", "there", "there's", "this", "to", "their", "them",
             "these", "he", "him", "his", "had", "have", "was", "were", "would"
         ],
-        "exclude_words": [],
+        "exclude_words": ["sp", "{lg}", "{ns}"],
         "log_interval":
         32,
         "data_dir":

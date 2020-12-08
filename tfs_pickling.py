@@ -9,17 +9,19 @@ Copyright (c) 2020 Your Company
 '''
 import pickle
 from datetime import datetime
-
+import sys
 import pandas as pd
 from nltk.stem import PorterStemmer
 
 from arg_parser import arg_parser
 from build_matrices import build_design_matrices
 from config import build_config
-
+from sklearn.model_selection import StratifiedKFold
 
 def create_dict(*args):
-    return dict(((k, eval(k)) for k in args))
+    print('hello')
+    print(globals().keys())
+    return dict(((k, globals()[k]) for k in args))
 
 
 def save_pickle(item, file_name):
@@ -42,12 +44,15 @@ def main():
                                              delimiter=" ",
                                              aug_shift_ms=[-1000, -500])
 
-        full_signal_dict = create_dict('full_signal', 'full_stitch_index',
-                                       'electrodes')
-        trimmed_signal_dict = create_dict('trimmed_signal',
-                                          'trimmed_stitch_index', 'electrodes')
-        binned_signal_dict = create_dict('binned_signal', 'bin_stitch_index',
-                                         'electrodes')
+        full_signal_dict = dict(full_signal=full_signal,
+                                full_stitch_index=full_stitch_index,
+                                electrodes=electrodes)
+        trimmed_signal_dict = dict(trimmed_signal=trimmed_signal,
+                                   trimmed_stitch_index=trimmed_stitch_index,
+                                   electrodes=electrodes)
+        binned_signal_dict = dict(full_signal=binned_signal,
+                                  full_stitch_index=bin_stitch_index,
+                                  electrodes=electrodes)
 
         save_pickle(full_signal_dict, '625_full_signal')
         save_pickle(trimmed_signal_dict, '625_trimmed_signal')
@@ -72,6 +77,18 @@ def main():
 
         save_pickle(labels_dict, '625_labels')
 
+        # create and save folds
+        df = df.groupby('word').filter(lambda x: len(x) >= args.vocab_min_freq)
+
+        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
+        # Extract only test folds
+        folds = [t[1] for t in skf.split(df, df.word)]
+
+        label_folds = {}
+        for index, fold in enumerate(folds):
+            label_folds['fold' + str(index)] = df.iloc[fold].to_dict('records')
+        
+        save_pickle(label_folds, '625_label_folds')
     return
 
 
