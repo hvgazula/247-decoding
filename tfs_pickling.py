@@ -8,20 +8,16 @@ Description: Contains code to pickle 247 data
 Copyright (c) 2020 Your Company
 '''
 import pickle
-from datetime import datetime
 import sys
+from datetime import datetime
+
 import pandas as pd
 from nltk.stem import PorterStemmer
+from sklearn.model_selection import StratifiedKFold
 
 from arg_parser import arg_parser
 from build_matrices import build_design_matrices
 from config import build_config
-from sklearn.model_selection import StratifiedKFold
-
-def create_dict(*args):
-    print('hello')
-    print(globals().keys())
-    return dict(((k, globals()[k]) for k in args))
 
 
 def save_pickle(item, file_name):
@@ -50,8 +46,8 @@ def main():
         trimmed_signal_dict = dict(trimmed_signal=trimmed_signal,
                                    trimmed_stitch_index=trimmed_stitch_index,
                                    electrodes=electrodes)
-        binned_signal_dict = dict(full_signal=binned_signal,
-                                  full_stitch_index=bin_stitch_index,
+        binned_signal_dict = dict(binned_signal=binned_signal,
+                                  bin_stitch_index=bin_stitch_index,
                                   electrodes=electrodes)
 
         save_pickle(full_signal_dict, '625_full_signal')
