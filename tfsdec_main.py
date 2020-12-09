@@ -49,7 +49,7 @@ def set_seed():
 def arg_parser():
     args = argparse.Namespace()
     args.patience = 150
-    args.verbose = 0
+    args.verbose = 1
     args.conv_filters = 128
     args.reg = 0.35
     args.dropout = 0.2
@@ -73,7 +73,7 @@ def load_pickles():
     with open('625_binned_signal.pkl', 'rb') as fh:
         signal_d = pickle.load(fh)
 
-    with open('625_label_folds.pkl', 'rb') as fh:
+    with open('625_both_labels_MWF30.pkl', 'rb') as fh:
         label_folds = pickle.load(fh)
 
     print('Signals pickle info')
@@ -191,7 +191,7 @@ def on_train_end(self, logs=None):
 
 
 # Define language model decoder
-if args.lm_head:
+def language_decoder(args):
     lang_model = TFBertForMaskedLM.from_pretrained(
         args.model_name, cache_dir='/scratch/gpfs/zzada/cache-tf')
     d_size = lang_model.config.hidden_size
@@ -208,41 +208,38 @@ if args.lm_head:
     x = Activation('softmax')(x)
     lm_decoder = Model(inputs=inputs, outputs=x)
     lm_decoder.summary()
+    return lm_decoder
 
 
 def get_decoder():
     if args.lm_head:
-        return lm_decoder
+        return language_decoder()
     else:
         return Dense(n_classes,
                      kernel_regularizer=l2(args.reg_head),
                      activation='softmax')
 
 
-def extract_signal_from_fold(fold_list, stitch_index, args):
+def extract_signal_from_fold(examples, stitch_index, args):
 
     lag_in_bin_dim = args.lag // 32
     half_window = args.half_window // 32
 
-    if type(fold_list) is not list:
-        fold_list = [fold_list]
-
     x, w = [], []
-    for fold in fold_list:
-        for label in fold:
-            bin_index = label['onset'] // 32
-            bin_rank = (np.array(stitch_index) < bin_index).nonzero()[0][-1]
-            bin_start = stitch_index[bin_rank]
-            bin_stop = stitch_index[bin_rank + 1]
+    for label in examples:
+        bin_index = label['onset'] // 32
+        bin_rank = (np.array(stitch_index) < bin_index).nonzero()[0][-1]
+        bin_start = stitch_index[bin_rank]
+        bin_stop = stitch_index[bin_rank + 1]
 
-            left_edge = bin_index + lag_in_bin_dim - half_window
-            right_edge = bin_index + lag_in_bin_dim + half_window
+        left_edge = bin_index + lag_in_bin_dim - half_window
+        right_edge = bin_index + lag_in_bin_dim + half_window
 
-            if (left_edge < bin_start) or (right_edge > bin_stop):
-                continue
-            else:
-                x.append(signals[left_edge:right_edge, :])
-                w.append(label['word'])
+        if (left_edge < bin_start) or (right_edge > bin_stop):
+            continue
+        else:
+            x.append(signals[left_edge:right_edge, :])
+            w.append(label['word'])
 
     x = np.stack(x, axis=0)
     w = np.array(w)
@@ -262,21 +259,20 @@ if __name__ == '__main__':
 
     signals, stitch_index, label_folds = load_pickles()
 
-    # Go through each fold, and split
-    for i in range(1):
-        # Shift the number of folds for this iteration
-        # [0 1 2 3 4] -> [1 2 3 4 0] -> [2 3 4 0 1]
-        #                       ^ dev fold
-        #                         ^ test fold
-        #                 | - | <- train folds
-        folds_ixs = np.roll(range(5), i)
-        folds_names = [''.join(['fold', str(i)]) for i in folds_ixs]
-        *train_fold, dev_fold, test_fold = folds_names
+    train_fold = [
+        example for example in label_folds if example['fold0'] == 'train'
+    ]
+    dev_fold = [
+        example for example in label_folds if example['fold0'] == 'dev'
+    ]
+    test_fold = [
+        example for example in label_folds if example['fold0'] == 'test'
+    ]
 
     # Decoding starts here
-    x_test, w_test = extract_signal_from_fold(test_fold, stitch_index, args)
-    x_dev, w_dev = extract_signal_from_fold(dev_fold, stitch_index, args)
     x_train, w_train = extract_signal_from_fold(train_fold, stitch_index, args)
+    x_dev, w_dev = extract_signal_from_fold(dev_fold, stitch_index, args)
+    x_test, w_test = extract_signal_from_fold(test_fold, stitch_index, args)
 
     # Determine indexing
     word2index = {w: i for i, w in enumerate(sorted(set(w_train.tolist())))}
