@@ -8,9 +8,9 @@ Description: Contains code to pickle 247 data
 Copyright (c) 2020 Your Company
 '''
 import pickle
-import sys
 from datetime import datetime
 
+import numpy as np
 import pandas as pd
 from nltk.stem import PorterStemmer
 from sklearn.model_selection import StratifiedKFold
@@ -27,6 +27,37 @@ def save_pickle(item, file_name):
     with open(file_name, 'wb') as fh:
         pickle.dump(item, fh)
     return
+
+
+def create_label_pickles(args, df, file_string):
+    # create and save folds
+    df = df.groupby('word').filter(
+        lambda x: len(x) >= args.vocab_min_freq).reset_index(drop=True)
+    print(df.word.nunique())
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
+
+    # Extract only test folds
+    folds = [t[1] for t in skf.split(df, df.word)]
+
+    # Go through each fold, and split
+    for i in range(5):
+        # Shift the number of folds for this iteration
+        # [0 1 2 3 4] -> [1 2 3 4 0] -> [2 3 4 0 1]
+        #                       ^ dev fold
+        #                         ^ test fold
+        #                 | - | <- train folds
+        fold_col = 'fold' + str(i)
+        folds_ixs = np.roll(range(5), i)
+        *train_fold, dev_fold, test_fold = folds_ixs
+
+        df.loc[folds[test_fold], fold_col] = 'test'
+        df.loc[folds[dev_fold], fold_col] = 'dev'
+        df.loc[[
+            *folds[train_fold[0]], *folds[train_fold[1]], *folds[train_fold[2]]
+        ], fold_col] = 'train'
+
+    label_folds = df.to_dict('records')
+    save_pickle(label_folds, file_string + str(args.vocab_min_freq))
 
 
 def main():
@@ -71,20 +102,16 @@ def main():
         labels_dict = dict(labels=df.to_dict('records'),
                            convo_label_size=convo_example_size)
 
-        save_pickle(labels_dict, '625_labels')
+        save_pickle(labels_dict, '625_all_labels')
 
-        # create and save folds
-        df = df.groupby('word').filter(lambda x: len(x) >= args.vocab_min_freq)
+        create_label_pickles(args, df, '625_both_labels_MWF')
 
-        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
-        # Extract only test folds
-        folds = [t[1] for t in skf.split(df, df.word)]
+        prod_df = df[df['speaker'] == 'Speaker1']
+        create_label_pickles(args, prod_df, '625_prod_labels_MWF')
 
-        label_folds = {}
-        for index, fold in enumerate(folds):
-            label_folds['fold' + str(index)] = df.iloc[fold].to_dict('records')
+        comp_df = df[df['speaker'] != 'Speaker1']
+        create_label_pickles(args, comp_df, '625_comp_labels_MWF')
 
-        save_pickle(label_folds, '625_label_folds')
     return
 
 

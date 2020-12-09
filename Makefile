@@ -3,7 +3,7 @@ CMD := python
 
 SID := 625
 MEL := 500
-MINF := 100
+MINF := 30
 # setting a very large number for MEL
 # will extract all common electrodes across all conversations
 
