@@ -83,7 +83,7 @@ def main():
         label_folds = {}
         for index, fold in enumerate(folds):
             label_folds['fold' + str(index)] = df.iloc[fold].to_dict('records')
-        
+
         save_pickle(label_folds, '625_label_folds')
     return
 
