@@ -21,12 +21,40 @@ from config import build_config
 
 
 def save_pickle(item, file_name):
+    """Write 'item' to 'file_name.pkl'
+    """
     if '.pkl' not in file_name:
         file_name = file_name + '.pkl'
 
     with open(file_name, 'wb') as fh:
         pickle.dump(item, fh)
     return
+
+
+def adjust_label_onsets(trimmed_stitch_index, labels):
+    """Adjust label onsets to account for stitched signal length
+
+    Args:
+        trimmed_stitch_index (list): stitch indices of trimmed signal
+        labels (list): tuples (word, speaker, onset, offset, accuracy)
+
+    Returns:
+        DataFrame: labels
+    """
+    trimmed_stitch_index.insert(0, 0)
+    trimmed_stitch_index.pop(-1)
+
+    new_labels = []
+    ps = PorterStemmer()
+    for start, sub_list in zip(trimmed_stitch_index, labels):
+        modified_labels = [(ps.stem(*i[0]), i[1], i[2] + start, i[3] + start,
+                            i[4]) for i in sub_list]
+        new_labels.extend(modified_labels)
+
+    df = pd.DataFrame(
+        new_labels, columns=['word', 'speaker', 'onset', 'offset', 'accuracy'])
+
+    return df
 
 
 def create_label_pickles(args, df, file_string):
@@ -59,10 +87,12 @@ def create_label_pickles(args, df, file_string):
     label_folds = df.to_dict('records')
     save_pickle(label_folds, file_string + str(args.vocab_min_freq))
 
+    return
+
 
 def main():
     args = arg_parser()
-    CONFIG = build_config(args, results_str='test')
+    CONFIG = build_config(args, results_str='pickles')
 
     if CONFIG['pickle']:
         (full_signal, full_stitch_index, trimmed_signal, trimmed_stitch_index,
@@ -71,45 +101,39 @@ def main():
                                              delimiter=" ",
                                              aug_shift_ms=[-1000, -500])
 
+        # Create pickle with full signal
         full_signal_dict = dict(full_signal=full_signal,
                                 full_stitch_index=full_stitch_index,
                                 electrodes=electrodes)
+        save_pickle(full_signal_dict, '625_full_signal')
+
+        # Create pickle with trimmed signal
         trimmed_signal_dict = dict(trimmed_signal=trimmed_signal,
                                    trimmed_stitch_index=trimmed_stitch_index,
                                    electrodes=electrodes)
+        save_pickle(trimmed_signal_dict, '625_trimmed_signal')
+
+        # Create pickle with binned signal
         binned_signal_dict = dict(binned_signal=binned_signal,
                                   bin_stitch_index=bin_stitch_index,
                                   electrodes=electrodes)
-
-        save_pickle(full_signal_dict, '625_full_signal')
-        save_pickle(trimmed_signal_dict, '625_trimmed_signal')
         save_pickle(binned_signal_dict, '625_binned_signal')
 
-        trimmed_stitch_index.insert(0, 0)
-        trimmed_stitch_index.pop(-1)
-
-        new_labels = []
-        ps = PorterStemmer()
-        for start, sub_list in zip(trimmed_stitch_index, labels):
-            modified_labels = [(ps.stem(*i[0]), i[1], i[2] + start,
-                                i[3] + start, i[4]) for i in sub_list]
-            new_labels.extend(modified_labels)
-
-        df = pd.DataFrame(
-            new_labels,
-            columns=['word', 'speaker', 'onset', 'offset', 'accuracy'])
-
-        labels_dict = dict(labels=df.to_dict('records'),
+        # Create pickle with all labels
+        labels_df = adjust_label_onsets(trimmed_stitch_index, labels)
+        labels_dict = dict(labels=labels_df.to_dict('records'),
                            convo_label_size=convo_example_size)
-
         save_pickle(labels_dict, '625_all_labels')
 
-        create_label_pickles(args, df, '625_both_labels_MWF')
+        # Create pickle with both production & comprehension labels
+        create_label_pickles(args, labels_df, '625_both_labels_MWF')
 
-        prod_df = df[df['speaker'] == 'Speaker1']
+        # Create pickle with production labels
+        prod_df = labels_df[labels_df['speaker'] == 'Speaker1']
         create_label_pickles(args, prod_df, '625_prod_labels_MWF')
 
-        comp_df = df[df['speaker'] != 'Speaker1']
+        # Create pickle with compehension labels
+        comp_df = labels_df[labels_df['speaker'] != 'Speaker1']
         create_label_pickles(args, comp_df, '625_comp_labels_MWF')
 
     return
