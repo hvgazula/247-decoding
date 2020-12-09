@@ -59,10 +59,16 @@ def adjust_label_onsets(trimmed_stitch_index, labels):
 
 
 def create_label_pickles(args, df, file_string):
-    # create and save folds
+    """create and save folds
+
+    Args:
+        args (namespace): namespace object with input arguments
+        df (DataFrame): labels
+        file_string (str): output pickle name
+    """
     df = df.groupby('word').filter(
         lambda x: len(x) >= args.vocab_min_freq).reset_index(drop=True)
-    print(df.word.nunique())
+
     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
 
     # Extract only test folds
