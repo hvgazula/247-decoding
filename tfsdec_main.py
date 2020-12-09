@@ -10,7 +10,7 @@ import argparse
 import json
 import os
 import pickle
-from collections import Counter
+from collections import Counter, defaultdict
 from contextlib import redirect_stdout
 
 import numpy as np
@@ -28,25 +28,38 @@ from transformers import TFBertForMaskedLM
 
 from evaluate import evaluate_roc, evaluate_topk
 
+import random as python_random
+
+# The below is necessary for starting Numpy generated random numbers
+# in a well-defined initial state.
+np.random.seed(123)
+
+# The below is necessary for starting core Python generated random numbers
+# in a well-defined state.
+python_random.seed(123)
+
+# The below set_seed() will make random number generation
+# in the TensorFlow backend have a well-defined initial state.
+# For further details, see:
+# https://www.tensorflow.org/api_docs/python/tf/random/set_seed
+tf.random.set_seed(1234)
+
 args = argparse.Namespace()
 args.patience = 150
-args.verbose = 1
+args.verbose = 0
 args.conv_filters = 128
 args.reg = 0.35
 args.dropout = 0.2
 args.reg_head = 0
 args.lr = 0.00025
-args.fine_epochs = 1
+args.fine_epochs = 1000
 args.lm_head = 0
 args.seed = 0
-args.batch_size = 32
+args.batch_size = 1024
 args.model = '247_decoding_test'
 
 # Logistical things
-proj_dir = '/projects/HASSON/247/'
-conv_dir = os.path.join(proj_dir, 'data', 'podcast')
-save_dir = os.getcwd()
-# save_dir = os.path.join('results-podcast-twostep', args.model) + '/'
+save_dir = os.path.join(os.getcwd(), args.model) + '/'
 if not os.path.isdir(save_dir):
     os.mkdir(save_dir)
 np.random.seed(args.seed)
@@ -288,14 +301,7 @@ print('W train, dev, test:', w_train.shape, w_dev.shape, w_test.shape)
 # print('Z train, dev, test:', z_train.shape, z_dev.shape, z_test.shape)
 print('n_classes:', n_classes, np.unique(y_dev).size, np.unique(y_test).size)
 
-stopper = EarlyStopping(monitor='val_cosine_similarity',
-                        mode='max',
-                        patience=args.patience,
-                        restore_best_weights=True,
-                        verbose=args.verbose)
-
-emb_dim = None
-model = pitom([x_train.shape[1:]], n_classes=emb_dim)
+model = pitom([x_train.shape[1:]], n_classes=None)
 optimizer = Adam(lr=args.lr)
 model.compile(loss='mse',
               optimizer=optimizer,
@@ -331,16 +337,16 @@ if args.fine_epochs > 0:
                        tf.keras.metrics.Precision(name='precision')
                    ])
 
-    with open(save_dir + 'model2-summary.txt', 'w') as f:
+    with open(os.path.join(save_dir, 'model2-summary.txt'), 'w') as f:
         with redirect_stdout(f):
             model2.summary()
-    print('here')
+
     stopper = EarlyStopping(monitor='val_top1',
                             mode='max',
                             patience=args.patience,
                             restore_best_weights=True,
                             verbose=args.verbose)
-    print('here1')
+
     history = model2.fit(
         x=x_train,
         y=to_categorical(y_train, n_classes),
