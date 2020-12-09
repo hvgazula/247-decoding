@@ -32,11 +32,12 @@ def save_pickle(item, file_name):
 
 
 def adjust_label_onsets(trimmed_stitch_index, labels):
-    """Adjust label onsets to account for stitched signal length
+    """Adjust label onsets to account for stitched signal length.
+    Also peform stemming on the labels.
 
     Args:
         trimmed_stitch_index (list): stitch indices of trimmed signal
-        labels (list): tuples (word, speaker, onset, offset, accuracy)
+        labels (list): of tuples (word, speaker, onset, offset, accuracy)
 
     Returns:
         DataFrame: labels
@@ -97,9 +98,7 @@ def main():
     if CONFIG['pickle']:
         (full_signal, full_stitch_index, trimmed_signal, trimmed_stitch_index,
          binned_signal, bin_stitch_index, labels, convo_example_size,
-         electrodes) = build_design_matrices(CONFIG,
-                                             delimiter=" ",
-                                             aug_shift_ms=[-1000, -500])
+         electrodes) = build_design_matrices(CONFIG, delimiter=" ")
 
         # Create pickle with full signal
         full_signal_dict = dict(full_signal=full_signal,
@@ -132,7 +131,7 @@ def main():
         prod_df = labels_df[labels_df['speaker'] == 'Speaker1']
         create_label_pickles(args, prod_df, '625_prod_labels_MWF')
 
-        # Create pickle with compehension labels
+        # Create pickle with comprehension labels
         comp_df = labels_df[labels_df['speaker'] != 'Speaker1']
         create_label_pickles(args, comp_df, '625_comp_labels_MWF')
 
