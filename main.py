@@ -184,8 +184,9 @@ if classify:
     else:
         title, suffix, prefix = ['bigram'] * 3
 
-    all_trg_y, topk_preds, topk_preds_scores, all_preds = classify_neural_signal(
-        CONFIG, vocab, DEVICE, best_model, valid_dl)
+    (all_trg_y, topk_preds, topk_preds_scores,
+     all_preds) = classify_neural_signal(CONFIG, vocab, DEVICE, best_model,
+                                         valid_dl)
 
     # Make categorical
     n_examples = len(y_test)
