@@ -15,9 +15,9 @@ import pandas as pd
 from nltk.stem import PorterStemmer
 from sklearn.model_selection import StratifiedKFold
 
-from .arg_parser import arg_parser
-from .build_matrices import build_design_matrices
-from .config import build_config
+from arg_parser import arg_parser
+from build_matrices import build_design_matrices
+from config import build_config
 
 
 def save_pickle(item, file_name):
@@ -100,9 +100,9 @@ def adjust_label_onsets(trimmed_stitch_index, labels):
     ps = PorterStemmer()
 
     len_to_add = 0
-    for start, sub_list in zip(trimmed_stitch_index, labels):
+    for conv_id, (start, sub_list) in enumerate(zip(trimmed_stitch_index, labels)):
         modified_labels = [(ps.stem(i[0]), i[1], i[2] + start, i[3] + start,
-                            i[4], *i[5:8], i[-1] + len_to_add)
+                            i[4], *i[5:8], i[-1] + len_to_add, conv_id + 1)
                            for i in sub_list]
         new_labels.extend(modified_labels)
         len_to_add += sub_list[-1][-1]
@@ -111,7 +111,7 @@ def adjust_label_onsets(trimmed_stitch_index, labels):
                       columns=[
                           'word', 'speaker', 'onset', 'offset', 'accuracy',
                           'sentence', 'sentence_length', 'words_in_sentence',
-                          'sentence_idx'
+                          'sentence_idx', 'conversation_id'
                       ])
 
     return df
@@ -188,18 +188,18 @@ def main():
         labels_df = adjust_label_onsets(trimmed_stitch_index, labels)
         labels_dict = dict(labels=labels_df.to_dict('records'),
                            convo_label_size=convo_example_size)
-        save_pickle(labels_dict, '625_all_labels')
+        save_pickle(labels_dict, '676_all_labels')
 
         # Create pickle with both production & comprehension labels
-        create_label_pickles(args, labels_df, '625_both_labels_MWF')
+        create_label_pickles(args, labels_df, '676_both_labels_MWF')
 
         # Create pickle with production labels
         prod_df = labels_df[labels_df['speaker'] == 'Speaker1']
-        create_label_pickles(args, prod_df, '625_prod_labels_MWF')
+        create_label_pickles(args, prod_df, '676_prod_labels_MWF')
 
         # Create pickle with comprehension labels
         comp_df = labels_df[labels_df['speaker'] != 'Speaker1']
-        create_label_pickles(args, comp_df, '625_comp_labels_MWF')
+        create_label_pickles(args, comp_df, '676_comp_labels_MWF')
 
     return
 
