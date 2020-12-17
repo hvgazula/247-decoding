@@ -189,7 +189,6 @@ def main():
         labels_dict = dict(labels=labels_df.to_dict('records'),
                            convo_label_size=convo_example_size)
         save_pickle(labels_dict, '625_all_labels')
-        raise Exception()
 
         # Create pickle with both production & comprehension labels
         create_label_pickles(args, labels_df, '625_both_labels_MWF')
