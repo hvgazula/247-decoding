@@ -31,7 +31,7 @@ def return_config_dict():
         "log_interval":
         32,
         "data_dir":
-        "/scratch/gpfs/hgazula/brain2en-seq2seq-data",
+        "/scratch/gpfs/hgazula/247-data",
         "num_cpus":
         8,
         "oov_token":
