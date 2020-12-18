@@ -265,14 +265,6 @@ def main():
         # Create pickle with both production & comprehension labels
         create_label_pickles(args, labels_df, '625_both_labels_MWF')
 
-        # Create pickle with production labels
-        prod_df = labels_df[labels_df['speaker'] == 'Speaker1']
-        create_label_pickles(args, prod_df, '676_prod_labels_MWF')
-
-        # Create pickle with comprehension labels
-        comp_df = labels_df[labels_df['speaker'] != 'Speaker1']
-        create_label_pickles(args, comp_df, '676_comp_labels_MWF')
-
     return
 
 
