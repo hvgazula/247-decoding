@@ -46,6 +46,14 @@ def get_sentence_length(section):
 
 
 def append_sentence(section):
+    """Join the words to form a sentence and append
+
+    Args:
+        section ([type]): [description]
+
+    Returns:
+        DataFrame: [description]
+    """
     sentence = ' '.join(section['word'])
     section['sentence'] = sentence
     return section
@@ -128,7 +136,7 @@ def add_conversation_id(conversation, conv_id):
     return conversation
 
 
-def adjust_label_onsets(trimmed_stitch_index, labels):
+def process_labels(trimmed_stitch_index, labels):
     """Adjust label onsets to account for stitched signal length.
     Also peform stemming on the labels.
 
@@ -149,6 +157,7 @@ def adjust_label_onsets(trimmed_stitch_index, labels):
     for conv_id, (start,
                   sub_list) in enumerate(zip(trimmed_stitch_index, labels), 1):
 
+        sub_list = create_sentence(sub_list)
         sub_list = word_stemming(sub_list, ps)
         sub_list = shift_onsets(sub_list, start)
         sub_list = add_conversation_id(sub_list, conv_id)
@@ -198,6 +207,24 @@ def create_label_pickles(args, df, file_string):
     return
 
 
+def word_freq_production(df):
+    df['word_freq_prod'] = df.groupby(['word', 'production'
+                                       ])['word'].transform('count')
+    return df
+
+
+def word_freq_comprehension(df):
+    df['word_freq_comp'] = df.groupby(['word', 'comprehension'
+                                       ])['word'].transform('count')
+    return df
+
+
+def create_production_flag(df):
+    df['production'] = df['speaker'] == 'Speaker1'
+    df['comprehension'] = df['speaker'] != 'Speaker1'
+    return df
+
+
 def main():
     args = arg_parser()
     CONFIG = build_config(args, results_str='pickles_new')
@@ -207,27 +234,30 @@ def main():
          binned_signal, bin_stitch_index, labels, convo_example_size,
          electrodes) = build_design_matrices(CONFIG, delimiter=" ")
 
-        # # Create pickle with full signal
-        # full_signal_dict = dict(full_signal=full_signal,
-        #                         full_stitch_index=full_stitch_index,
-        #                         electrodes=electrodes)
-        # save_pickle(full_signal_dict, '625_full_signal')
+        # Create pickle with full signal
+        full_signal_dict = dict(full_signal=full_signal,
+                                full_stitch_index=full_stitch_index,
+                                electrodes=electrodes)
+        save_pickle(full_signal_dict, '625_full_signal')
 
-        # # Create pickle with trimmed signal
-        # trimmed_signal_dict = dict(trimmed_signal=trimmed_signal,
-        #                            trimmed_stitch_index=trimmed_stitch_index,
-        #                            electrodes=electrodes)
-        # save_pickle(trimmed_signal_dict, '625_trimmed_signal')
+        # Create pickle with trimmed signal
+        trimmed_signal_dict = dict(trimmed_signal=trimmed_signal,
+                                   trimmed_stitch_index=trimmed_stitch_index,
+                                   electrodes=electrodes)
+        save_pickle(trimmed_signal_dict, '625_trimmed_signal')
 
-        # # Create pickle with binned signal
-        # binned_signal_dict = dict(binned_signal=binned_signal,
-        #                           bin_stitch_index=bin_stitch_index,
-        #                           electrodes=electrodes)
-        # save_pickle(binned_signal_dict, '625_binned_signal')
+        # Create pickle with binned signal
+        binned_signal_dict = dict(binned_signal=binned_signal,
+                                  bin_stitch_index=bin_stitch_index,
+                                  electrodes=electrodes)
+        save_pickle(binned_signal_dict, '625_binned_signal')
 
         # Create pickle with all labels
-        labels = add_sentences_to_labels(labels)
-        labels_df = adjust_label_onsets(trimmed_stitch_index, labels)
+        labels_df = process_labels(trimmed_stitch_index, labels)
+        labels_df = create_production_flag(labels_df)
+        labels_df = word_freq_production(labels_df)
+        labels_df = word_freq_comprehension(labels_df)
+
         labels_dict = dict(labels=labels_df.to_dict('records'),
                            convo_label_size=convo_example_size)
         save_pickle(labels_dict, '676_all_labels')
