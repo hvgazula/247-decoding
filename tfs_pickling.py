@@ -70,7 +70,6 @@ def create_sentence(labels):
             np.concatenate(
                 (section, sentence_arr, sent_len_arr, num_words, sentence_idx),
                 axis=1).tolist())
-
     return my_labels
 
 
@@ -79,6 +78,7 @@ def add_sentences_to_labels(label_list):
     for convo in label_list:
         labels_with_sentence = create_sentence(convo)
         labels_with_sentences.append(labels_with_sentence)
+
     return labels_with_sentences
 
 
@@ -100,18 +100,21 @@ def adjust_label_onsets(trimmed_stitch_index, labels):
     ps = PorterStemmer()
 
     len_to_add = 0
-    for conv_id, (start, sub_list) in enumerate(zip(trimmed_stitch_index, labels)):
-        modified_labels = [(ps.stem(i[0]), i[1], i[2] + start, i[3] + start,
-                            i[4], *i[5:8], i[-1] + len_to_add, conv_id + 1)
-                           for i in sub_list]
+    for conv_id, (start,
+                  sub_list) in enumerate(zip(trimmed_stitch_index, labels)):
+        modified_labels = [
+            (i[0], ps.stem(i[0]), i[1], i[2] + start, i[3] + start, i[4],
+             *i[5:8], i[-1] + len_to_add, conv_id + 1) for i in sub_list
+        ]
         new_labels.extend(modified_labels)
         len_to_add += sub_list[-1][-1]
 
     df = pd.DataFrame(np.vstack(new_labels),
                       columns=[
-                          'word', 'speaker', 'onset', 'offset', 'accuracy',
-                          'sentence', 'sentence_length', 'words_in_sentence',
-                          'sentence_idx', 'conversation_id'
+                          'word', 'stemmed_word', 'speaker', 'onset', 'offset',
+                          'accuracy', 'sentence', 'sentence_length',
+                          'words_in_sentence', 'sentence_idx',
+                          'conversation_id'
                       ])
 
     return df
@@ -165,23 +168,23 @@ def main():
          binned_signal, bin_stitch_index, labels, convo_example_size,
          electrodes) = build_design_matrices(CONFIG, delimiter=" ")
 
-        # Create pickle with full signal
-        full_signal_dict = dict(full_signal=full_signal,
-                                full_stitch_index=full_stitch_index,
-                                electrodes=electrodes)
-        save_pickle(full_signal_dict, '625_full_signal')
+        # # Create pickle with full signal
+        # full_signal_dict = dict(full_signal=full_signal,
+        #                         full_stitch_index=full_stitch_index,
+        #                         electrodes=electrodes)
+        # save_pickle(full_signal_dict, '625_full_signal')
 
-        # Create pickle with trimmed signal
-        trimmed_signal_dict = dict(trimmed_signal=trimmed_signal,
-                                   trimmed_stitch_index=trimmed_stitch_index,
-                                   electrodes=electrodes)
-        save_pickle(trimmed_signal_dict, '625_trimmed_signal')
+        # # Create pickle with trimmed signal
+        # trimmed_signal_dict = dict(trimmed_signal=trimmed_signal,
+        #                            trimmed_stitch_index=trimmed_stitch_index,
+        #                            electrodes=electrodes)
+        # save_pickle(trimmed_signal_dict, '625_trimmed_signal')
 
-        # Create pickle with binned signal
-        binned_signal_dict = dict(binned_signal=binned_signal,
-                                  bin_stitch_index=bin_stitch_index,
-                                  electrodes=electrodes)
-        save_pickle(binned_signal_dict, '625_binned_signal')
+        # # Create pickle with binned signal
+        # binned_signal_dict = dict(binned_signal=binned_signal,
+        #                           bin_stitch_index=bin_stitch_index,
+        #                           electrodes=electrodes)
+        # save_pickle(binned_signal_dict, '625_binned_signal')
 
         # Create pickle with all labels
         labels = add_sentences_to_labels(labels)
@@ -191,7 +194,7 @@ def main():
         save_pickle(labels_dict, '676_all_labels')
 
         # Create pickle with both production & comprehension labels
-        create_label_pickles(args, labels_df, '676_both_labels_MWF')
+        create_label_pickles(args, labels_df, '625_both_labels_MWF')
 
         # Create pickle with production labels
         prod_df = labels_df[labels_df['speaker'] == 'Speaker1']
