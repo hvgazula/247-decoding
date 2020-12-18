@@ -32,10 +32,49 @@ def save_pickle(item, file_name):
 
 
 def find_switch_points(array):
+    """Find indices where speaker switches and split the dataframe
+    """
     return np.where(array[:-1] != array[1:])[0] + 1
 
 
-def create_sentence(labels):
+def get_sentence_length(section):
+    """Sentence length = offset of the last word - onset of first word
+    """
+    last_word_offset = section.iloc[-1, 3]
+    first_word_onset = section.iloc[0, 2]
+    return last_word_offset - first_word_onset
+
+
+def append_sentence(section):
+    sentence = ' '.join(section['word'])
+    section['sentence'] = sentence
+    return section
+
+
+def append_sentence_length(section):
+    sentence_length = get_sentence_length(section)
+    section['sentence_length'] = sentence_length
+    return section
+
+
+def append_num_words(section):
+    section['num_words'] = len(section)
+    return section
+
+
+def append_sentence_idx(section, idx):
+    section['sentence_idx'] = idx + 1
+    return section
+
+
+def convert_labels_to_df(labels):
+    convo_df = pd.DataFrame(
+        labels, columns=['word', 'speaker', 'onset', 'offset', 'accuracy'])
+    convo_df.word = convo_df['word'].apply(' '.join)
+    return convo_df
+
+
+def create_sentence(conversation):
     """[summary]
 
     Args:
@@ -44,33 +83,19 @@ def create_sentence(labels):
     Returns:
         [type]: [description]
     """
-    convo_df = pd.DataFrame(
-        labels, columns=['word', 'speaker', 'onset', 'offset', 'accuracy'])
-    convo_df.word = convo_df['word'].apply(' '.join)
-
-    # Find indices where speaker switches and split the dataframe
-    speaker_switch_dx = find_switch_points(convo_df.speaker.values)
-    sentence_df = np.split(convo_df, speaker_switch_dx, axis=0)
+    convo_df = convert_labels_to_df(conversation)
+    speaker_switch_idx = find_switch_points(convo_df.speaker.values)
+    sentence_df = np.split(convo_df, speaker_switch_idx, axis=0)
 
     # For each sentence df split
     my_labels = []
     for idx, section in enumerate(sentence_df):
-        last_word_offset = section.iloc[-1, 3]
-        first_word_onset = section.iloc[0, 2]
-        sentence_len = last_word_offset - first_word_onset
-
-        # create a sentence and append to the dataframe
-        sentence = ' '.join(section['word'])
-        sentence_arr = np.tile(sentence, (len(section), 1))
-        sent_len_arr = np.tile(sentence_len, (len(section), 1))
-        num_words = np.tile(len(section), (len(section), 1))
-        sentence_idx = np.tile(idx + 1, (len(section), 1))
-
-        my_labels.extend(
-            np.concatenate(
-                (section, sentence_arr, sent_len_arr, num_words, sentence_idx),
-                axis=1).tolist())
-    return my_labels
+        section = append_sentence_length(section)
+        section = append_sentence(section)
+        section = append_num_words(section)
+        section = append_sentence_idx(section, idx)
+        my_labels.append(section)
+    return pd.concat(my_labels)
 
 
 def add_sentences_to_labels(label_list):
@@ -78,8 +103,29 @@ def add_sentences_to_labels(label_list):
     for convo in label_list:
         labels_with_sentence = create_sentence(convo)
         labels_with_sentences.append(labels_with_sentence)
-
     return labels_with_sentences
+
+
+def word_stemming(conversation, ps):
+    conversation['stemmed_word'] = conversation['word'].apply(ps.stem)
+    return conversation
+
+
+def shift_onsets(conversation, start):
+    conversation['onset'] += start
+    conversation['offset'] += start
+    return conversation
+
+
+def add_sentence_index(conversation, length):
+    conversation['sentence_idx'] += length
+    length = conversation['sentence_idx'].nunique()
+    return conversation, length
+
+
+def add_conversation_id(conversation, conv_id):
+    conversation['conversation_id'] = conv_id
+    return conversation
 
 
 def adjust_label_onsets(trimmed_stitch_index, labels):
@@ -101,23 +147,16 @@ def adjust_label_onsets(trimmed_stitch_index, labels):
 
     len_to_add = 0
     for conv_id, (start,
-                  sub_list) in enumerate(zip(trimmed_stitch_index, labels)):
-        modified_labels = [
-            (i[0], ps.stem(i[0]), i[1], i[2] + start, i[3] + start, i[4],
-             *i[5:8], i[-1] + len_to_add, conv_id + 1) for i in sub_list
-        ]
-        new_labels.extend(modified_labels)
-        len_to_add += sub_list[-1][-1]
+                  sub_list) in enumerate(zip(trimmed_stitch_index, labels), 1):
 
-    df = pd.DataFrame(np.vstack(new_labels),
-                      columns=[
-                          'word', 'stemmed_word', 'speaker', 'onset', 'offset',
-                          'accuracy', 'sentence', 'sentence_length',
-                          'words_in_sentence', 'sentence_idx',
-                          'conversation_id'
-                      ])
+        sub_list = word_stemming(sub_list, ps)
+        sub_list = shift_onsets(sub_list, start)
+        sub_list = add_conversation_id(sub_list, conv_id)
+        sub_list, len_to_add = add_sentence_index(sub_list, len_to_add)
 
-    return df
+        new_labels.append(sub_list)
+
+    return pd.concat(new_labels)
 
 
 def create_label_pickles(args, df, file_string):
