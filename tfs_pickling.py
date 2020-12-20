@@ -106,22 +106,14 @@ def create_sentence(conversation):
     return pd.concat(my_labels)
 
 
-def add_sentences_to_labels(label_list):
-    labels_with_sentences = []
-    for convo in label_list:
-        labels_with_sentence = create_sentence(convo)
-        labels_with_sentences.append(labels_with_sentence)
-    return labels_with_sentences
-
-
 def word_stemming(conversation, ps):
     conversation['stemmed_word'] = conversation['word'].apply(ps.stem)
     return conversation
 
 
-def shift_onsets(conversation, start):
-    conversation['onset'] += start
-    conversation['offset'] += start
+def shift_onsets(conversation, shift):
+    conversation['onset'] += shift
+    conversation['offset'] += shift
     return conversation
 
 
@@ -168,6 +160,24 @@ def process_labels(trimmed_stitch_index, labels):
     return pd.concat(new_labels)
 
 
+def word_freq_production(df):
+    df['word_freq_prod'] = df.groupby(['word', 'production'
+                                       ])['word'].transform('count')
+    return df
+
+
+def word_freq_comprehension(df):
+    df['word_freq_comp'] = df.groupby(['word', 'comprehension'
+                                       ])['word'].transform('count')
+    return df
+
+
+def create_production_flag(df):
+    df['production'] = df['speaker'] == 'Speaker1'
+    df['comprehension'] = df['speaker'] != 'Speaker1'
+    return df
+
+
 def create_label_pickles(args, df, file_string):
     """create and save folds
 
@@ -207,27 +217,11 @@ def create_label_pickles(args, df, file_string):
     return
 
 
-def word_freq_production(df):
-    df['word_freq_prod'] = df.groupby(['word', 'production'
-                                       ])['word'].transform('count')
-    return df
-
-
-def word_freq_comprehension(df):
-    df['word_freq_comp'] = df.groupby(['word', 'comprehension'
-                                       ])['word'].transform('count')
-    return df
-
-
-def create_production_flag(df):
-    df['production'] = df['speaker'] == 'Speaker1'
-    df['comprehension'] = df['speaker'] != 'Speaker1'
-    return df
-
-
 def main():
     args = arg_parser()
     CONFIG = build_config(args, results_str='pickles_new')
+
+    subject_id = CONFIG['subjects'][0]
 
     if CONFIG['pickle']:
         (full_signal, full_stitch_index, trimmed_signal, trimmed_stitch_index,
@@ -238,19 +232,19 @@ def main():
         full_signal_dict = dict(full_signal=full_signal,
                                 full_stitch_index=full_stitch_index,
                                 electrodes=electrodes)
-        save_pickle(full_signal_dict, '625_full_signal')
+        save_pickle(full_signal_dict, subject_id + '_full_signal')
 
         # Create pickle with trimmed signal
         trimmed_signal_dict = dict(trimmed_signal=trimmed_signal,
                                    trimmed_stitch_index=trimmed_stitch_index,
                                    electrodes=electrodes)
-        save_pickle(trimmed_signal_dict, '625_trimmed_signal')
+        save_pickle(trimmed_signal_dict, subject_id + '_trimmed_signal')
 
         # Create pickle with binned signal
         binned_signal_dict = dict(binned_signal=binned_signal,
                                   bin_stitch_index=bin_stitch_index,
                                   electrodes=electrodes)
-        save_pickle(binned_signal_dict, '625_binned_signal')
+        save_pickle(binned_signal_dict, subject_id + '_binned_signal')
 
         # Create pickle with all labels
         labels_df = process_labels(trimmed_stitch_index, labels)
@@ -260,10 +254,10 @@ def main():
 
         labels_dict = dict(labels=labels_df.to_dict('records'),
                            convo_label_size=convo_example_size)
-        save_pickle(labels_dict, '676_all_labels')
+        save_pickle(labels_dict, subject_id + '_all_labels')
 
         # Create pickle with both production & comprehension labels
-        create_label_pickles(args, labels_df, '625_both_labels_MWF')
+        create_label_pickles(args, labels_df, subject_id + '_both_labels_MWF')
 
     return
 
