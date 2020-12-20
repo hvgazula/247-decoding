@@ -7,6 +7,7 @@ Description: Contains code to pickle 247 data
 
 Copyright (c) 2020 Your Company
 '''
+import os
 import pickle
 from datetime import datetime
 
@@ -25,6 +26,8 @@ def save_pickle(item, file_name):
     """
     if '.pkl' not in file_name:
         file_name = file_name + '.pkl'
+
+    os.makedirs(os.path.join(os.getcwd(), 'pickles', file_name), exist_ok=True)
 
     with open(file_name, 'wb') as fh:
         pickle.dump(item, fh)
@@ -178,43 +181,44 @@ def create_production_flag(df):
     return df
 
 
-def create_label_pickles(args, df, file_string):
-    """create and save folds
+def filter_on_freq(args, df):
+    df = df.groupby('word').filter(
+        lambda x: len(x) >= args.vocab_min_freq).reset_index(drop=True)
+    return df
+
+
+def stratify_split(df):
+    # Extract only test folds
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
+    folds = [t[1] for t in skf.split(df, df.word)]
+    return folds
+
+
+def create_folds(args, df):
+    """create new columns in the df with the folds labeled
 
     Args:
         args (namespace): namespace object with input arguments
         df (DataFrame): labels
-        file_string (str): output pickle name
     """
-    df = df.groupby('word').filter(
-        lambda x: len(x) >= args.vocab_min_freq).reset_index(drop=True)
-
-    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
-
-    # Extract only test folds
-    folds = [t[1] for t in skf.split(df, df.word)]
+    fold_column_names = ['fold' + str(i) for i in range(5)]
+    folds = stratify_split(df)
 
     # Go through each fold, and split
-    for i in range(5):
+    for i, fold_col in enumerate(fold_column_names):
         # Shift the number of folds for this iteration
         # [0 1 2 3 4] -> [1 2 3 4 0] -> [2 3 4 0 1]
         #                       ^ dev fold
         #                         ^ test fold
         #                 | - | <- train folds
-        fold_col = 'fold' + str(i)
-        folds_ixs = np.roll(range(5), i)
-        *train_fold, dev_fold, test_fold = folds_ixs
+        folds_ixs = np.roll(folds, i)
+        *_, dev_ixs, test_ixs = folds_ixs
 
-        df.loc[folds[test_fold], fold_col] = 'test'
-        df.loc[folds[dev_fold], fold_col] = 'dev'
-        df.loc[[
-            *folds[train_fold[0]], *folds[train_fold[1]], *folds[train_fold[2]]
-        ], fold_col] = 'train'
+        df[fold_col] = 'train'
+        df.loc[dev_ixs, fold_col] = 'dev'
+        df.loc[test_ixs, fold_col] = 'test'
 
-    label_folds = df.to_dict('records')
-    save_pickle(label_folds, file_string + str(args.vocab_min_freq))
-
-    return
+    return df
 
 
 def main():
@@ -256,8 +260,12 @@ def main():
                            convo_label_size=convo_example_size)
         save_pickle(labels_dict, subject_id + '_all_labels')
 
-        # Create pickle with both production & comprehension labels
-        create_label_pickles(args, labels_df, subject_id + '_both_labels_MWF')
+        labels_df = filter_on_freq(args, labels_df)
+        labels_df = create_folds(args, labels_df)
+
+        label_folds = labels_df.to_dict('records')
+        save_pickle(label_folds,
+                    subject_id + '_both_labels_MWF' + str(args.vocab_min_freq))
 
     return
 
