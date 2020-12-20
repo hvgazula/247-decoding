@@ -52,10 +52,7 @@ def append_sentence(section):
     """Join the words to form a sentence and append
 
     Args:
-        section ([type]): [description]
-
-    Returns:
-        DataFrame: [description]
+        section (DataFrame): [description]
     """
     sentence = ' '.join(section['word'])
     section['sentence'] = sentence
