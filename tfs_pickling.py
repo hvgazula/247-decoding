@@ -25,9 +25,12 @@ def save_pickle(item, file_name):
     """Write 'item' to 'file_name.pkl'
     """
     if '.pkl' not in file_name:
-        file_name = file_name + '.pkl'
+        add_ext = '.pkl'
+    else:
+        add_ext = ''
 
-    os.makedirs(os.path.join(os.getcwd(), 'pickles', file_name), exist_ok=True)
+    file_name = os.path.join(os.getcwd(), 'pickles', file_name) + add_ext
+    os.makedirs(os.path.dirname(file_name), exist_ok=True)
 
     with open(file_name, 'wb') as fh:
         pickle.dump(item, fh)
@@ -82,6 +85,25 @@ def convert_labels_to_df(labels):
     return convo_df
 
 
+def split_convo_to_sections(conversation):
+    convo_df = convert_labels_to_df(conversation)
+    speaker_switch_idx = find_switch_points(convo_df.speaker.values)
+    sentence_df = np.split(convo_df, speaker_switch_idx, axis=0)
+    return sentence_df
+
+
+def process_sections(section_list):
+    # For each sentence df split
+    my_labels = []
+    for idx, section in enumerate(section_list):
+        section = append_sentence_length(section)
+        section = append_sentence(section)
+        section = append_num_words(section)
+        section = append_sentence_idx(section, idx)
+        my_labels.append(section)
+    return pd.concat(my_labels)
+
+
 def create_sentence(conversation):
     """[summary]
 
@@ -91,19 +113,9 @@ def create_sentence(conversation):
     Returns:
         [type]: [description]
     """
-    convo_df = convert_labels_to_df(conversation)
-    speaker_switch_idx = find_switch_points(convo_df.speaker.values)
-    sentence_df = np.split(convo_df, speaker_switch_idx, axis=0)
-
-    # For each sentence df split
-    my_labels = []
-    for idx, section in enumerate(sentence_df):
-        section = append_sentence_length(section)
-        section = append_sentence(section)
-        section = append_num_words(section)
-        section = append_sentence_idx(section, idx)
-        my_labels.append(section)
-    return pd.concat(my_labels)
+    convo_sections = split_convo_to_sections(conversation)
+    conversation = process_sections(convo_sections)
+    return conversation
 
 
 def word_stemming(conversation, ps):
@@ -160,21 +172,19 @@ def process_labels(trimmed_stitch_index, labels):
     return pd.concat(new_labels)
 
 
-def word_freq_production(df):
-    df['word_freq_prod'] = df.groupby(['word', 'production'
-                                       ])['word'].transform('count')
+def inclass_word_freq(df):
+    df['word_freq_inclass'] = df.groupby(['word', 'production'
+                                          ])['word'].transform('count')
     return df
 
 
-def word_freq_comprehension(df):
-    df['word_freq_comp'] = df.groupby(['word', 'comprehension'
-                                       ])['word'].transform('count')
+def total_word_freq(df):
+    df['word_freq_total'] = df.groupby(['word'])['word'].transform('count')
     return df
 
 
 def create_production_flag(df):
-    df['production'] = df['speaker'] == 'Speaker1'
-    df['comprehension'] = df['speaker'] != 'Speaker1'
+    df['production'] = (df['speaker'] == 'Speaker1').astype(int)
     return df
 
 
@@ -250,8 +260,8 @@ def main():
         # Create pickle with all labels
         labels_df = process_labels(trimmed_stitch_index, labels)
         labels_df = create_production_flag(labels_df)
-        labels_df = word_freq_production(labels_df)
-        labels_df = word_freq_comprehension(labels_df)
+        labels_df = inclass_word_freq(labels_df)
+        labels_df = total_word_freq(labels_df)
 
         labels_dict = dict(labels=labels_df.to_dict('records'),
                            convo_label_size=convo_example_size)
