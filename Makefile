@@ -46,3 +46,11 @@ run-decoding2:
 		--lags $(LAGS) \
 		--model s_$(SID)-m_$$mode-e_64-u_$(USR); \
 	done
+
+plot:
+	python plots.py \
+	    -q "model == 's_625-m_prod-e_64-u_zz'" \
+	       "model == 's_625-m_comp-e_64-u_zz'" \
+	    -x lag \
+	    -y avg_rocauc_test_w_avg
+	mv -f out.png ~/tigress/

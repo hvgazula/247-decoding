@@ -1,30 +1,25 @@
 #!/bin/bash
-#SBATCH --time=04:30:00
+#SBATCH --time=01:10:00
 #SBATCH --mem=16GB
 #SBATCH --gres=gpu:1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH -o './logs/%A.out'
-#SBATCH -e './logs/%A.err'
+#SBATCH -o './logs/%A-%a.log'
 
 if [[ "$HOSTNAME" == *"tiger"* ]]
 then
-    echo "It's tiger"
     module load anaconda
-    source activate 247-podcast-tf2
+    conda activate 247-podcast-tf2
 else
     module load anacondapy
-    source activate srm
+    source activate 247-main
 fi
 
 echo 'Requester:' $USER
 echo 'Node:' $HOSTNAME
 echo 'Start time:' `date`
 echo "$@"
-if [[ -v SLURM_ARRAY_TASK_ID ]]
-then
-    python "$@" --electrodes $SLURM_ARRAY_TASK_ID
-else
-    python tfsdec_main.py
-fi
+for run in {0..1}; do
+    python "$@"
+done
 echo 'End time:' `date`
