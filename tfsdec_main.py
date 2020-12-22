@@ -155,39 +155,35 @@ def pitom(input_shapes, n_classes):
 
 
 class WeightAverager(tf.keras.callbacks.Callback):
-    """Averages model weights across training trajectory, starting at designated
-    epoch."""
+    """Averages model weights across training trajectory, starting at
+    designated epoch."""
 
+    def __init__(self, epoch_count, patience):
+        super(WeightAverager, self).__init__()
+        self.epoch_count = min(epoch_count, 2 * patience)
+        self.weights = []
+        self.patience = patience
 
-def __init__(self, epoch_count, patience):
-    super(WeightAverager, self).__init__()
-    self.epoch_count = min(epoch_count, 2 * patience)
-    self.weights = []
-    self.patience = patience
+    def on_train_begin(self, logs=None):
+        print('Weight averager over last {} epochs.'.format(self.epoch_count))
 
+    def on_epoch_end(self, epoch, logs=None):
+        if len(self.weights) and len(
+                self.weights) == self.patience + self.epoch_count / 2:
+            self.weights.pop(0)
+        self.weights.append(self.model.get_weights())
 
-def on_train_begin(self, logs=None):
-    print('Weight averager over last {} epochs.'.format(self.epoch_count))
-
-
-def on_epoch_end(self, epoch, logs=None):
-    if len(self.weights) and len(
-            self.weights) == self.patience + self.epoch_count / 2:
-        self.weights.pop(0)
-    self.weights.append(self.model.get_weights())
-
-
-def on_train_end(self, logs=None):
-    if self.weights:
-        self.best_weights = np.asarray(self.model.get_weights())
-        w = 0
-        p = 0
-        for p, nw in enumerate(self.weights):
-            w = (w * p + np.asarray(nw)) / (p + 1)
-            if p >= self.epoch_count:
-                break
-        self.model.set_weights(w)
-        print('Averaged {} weights.'.format(p + 1))
+    def on_train_end(self, logs=None):
+        if self.weights:
+            self.best_weights = np.asarray(self.model.get_weights())
+            w = 0
+            p = 0
+            for p, nw in enumerate(self.weights):
+                w = (w * p + np.asarray(nw)) / (p + 1)
+                if p >= self.epoch_count:
+                    break
+            self.model.set_weights(w)
+            print('Averaged {} weights.'.format(p + 1))
 
 
 # Define language model decoder
