@@ -19,6 +19,7 @@ from sklearn.model_selection import StratifiedKFold
 from arg_parser import arg_parser
 from build_matrices import build_design_matrices
 from config import build_config
+from profile_dec import profile
 
 
 def save_pickle(item, file_name):
@@ -173,13 +174,13 @@ def process_labels(trimmed_stitch_index, labels):
 
 
 def inclass_word_freq(df):
-    df['word_freq_inclass'] = df.groupby(['word', 'production'
+    df['word_freq_phase'] = df.groupby(['word', 'production'
                                           ])['word'].transform('count')
     return df
 
 
 def total_word_freq(df):
-    df['word_freq_total'] = df.groupby(['word'])['word'].transform('count')
+    df['word_freq_overall'] = df.groupby(['word'])['word'].transform('count')
     return df
 
 
@@ -227,7 +228,7 @@ def create_folds(args, df):
 
     return df
 
-
+@profile(sort_by='cumulative', strip_dirs=True)
 def main():
     args = arg_parser()
     CONFIG = build_config(args, results_str='pickles_new')
@@ -265,14 +266,14 @@ def main():
 
         labels_dict = dict(labels=labels_df.to_dict('records'),
                            convo_label_size=convo_example_size)
-        save_pickle(labels_dict, subject_id + '_all_labels')
+        save_pickle(labels_dict, subject_id + '_labels')
 
         labels_df = filter_on_freq(args, labels_df)
         labels_df = create_folds(args, labels_df)
 
         label_folds = labels_df.to_dict('records')
         save_pickle(label_folds,
-                    subject_id + '_both_labels_MWF' + str(args.vocab_min_freq))
+                    subject_id + '_labels_MWF' + str(args.vocab_min_freq))
 
     return
 
