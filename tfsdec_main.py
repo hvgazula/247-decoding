@@ -7,6 +7,7 @@ Author: Harshvardhan Gazula
 Copyright (c) 2020 Your Company
 '''
 import uuid
+import glob
 import argparse
 import json
 import os
@@ -63,6 +64,7 @@ def arg_parser():
     parser.add_argument('--fine-epochs', type=int, default=1000, help='Integer. Number of epochs to train the model. An epoch is an iteration over the entire x and y data provided.')
     parser.add_argument('--patience', type=int, default=150, help='Number of epochs with no improvement after which training will be stopped.')
     parser.add_argument('--lm_head', action='store_true', help='NotImplementedError')
+    parser.add_argument('--ensemble', action='store_true', help='Use the trained models to create an ensemble. No training is performed.')
 
     # Model definition
     parser.add_argument('--conv_filters', type=int, default=128, help='Number of convolutional filters in the model.')
@@ -275,11 +277,13 @@ if __name__ == '__main__':
     args = arg_parser()
 
     # Logistical things
-    nonce = uuid.uuid4().hex  # TODO - include sbatch job info?
-    save_dir = os.path.join('results', args.model, str(args.lag), nonce) + '/'
+    nonce = 'ensemble' if args.ensemble else uuid.uuid4().hex 
+    save_dir = os.path.join('results', args.model, str(args.lag), nonce)
     os.makedirs(save_dir, exist_ok=True)
 
+    args.save_dir = save_dir
     print(args)
+
     with open(os.path.join(save_dir, 'args.json'), 'w') as fp:
         json.dump(vars(args), fp, indent=4)
 
@@ -339,10 +343,11 @@ if __name__ == '__main__':
         corrs = {}
         test_result = {}
         main_history = {}
+        models = []  # len(models) > 1 when using ensemble
         loaded_model = False  # TODO - make an arg appropriately
 
         # Add the decoder, LM head or just a new layer
-        if args.fine_epochs > 0:
+        if args.fine_epochs > 0 and not args.ensemble:
             print('I am inside fine_epochs')
             model2 = Model(inputs=model.input, outputs=get_decoder()(model.output))
             model2.compile(
@@ -377,34 +382,56 @@ if __name__ == '__main__':
                 verbose=args.verbose)
 
             model2.save(os.path.join(save_dir, f'model2-fold{i}.h5'))
+            models.append(model2)
 
             main_history.update(history.history)
+        elif args.ensemble:
+            prev_dir = os.path.dirname(save_dir)
+            for fn in glob.glob(f'{prev_dir}/*/model2-fold{i}.h5'):
+                if os.path.isfile(fn):
+                    try:
+                        models.append(tf.keras.models.load_model(fn))
+                        print(f'Loaded {fn}')
+                    except Exception as e:
+                        print(f'Problem loading model: {e}')
+            assert len(models) > 0, f'No trained models found: {prev_dir}'
         else:
             trained_model_fn = os.path.join(save_dir, f'model2-fold{i}.h5')
             if os.path.isfile(trained_model_fn):
                 print('Loading model!')
                 loaded_model = True
                 model2 = tf.keras.models.load_model(trained_model_fn)
+                models.append(model2)
+            else:
+                assert False, 'No trained model to load.'
 
         histories.append(main_history)
 
+        # Evaluate classification model
         res, res2 = {}, {}
-        if args.lm_head or args.fine_epochs > 0 or loaded_model:
+        if args.lm_head or args.fine_epochs > 0 or loaded_model or args.ensemble:
             # Evaluate end to end on test set
-            testset = model2.evaluate(x_test,
-                                      to_categorical(y_test, n_classes),
-                                      verbose=args.verbose)
-            test_result2 = {
-                metric: float(result)
-                for metric, result in zip(model2.metrics_names, testset)
-            }
-            test_result.update(test_result2)
+            if len(models) == 1:
+                model = models[0]
+                testset = model2.evaluate(x_test,
+                                          to_categorical(y_test, n_classes),
+                                          verbose=args.verbose)
+                test_result2 = {
+                    metric: float(result)
+                    for metric, result in zip(model2.metrics_names, testset)
+                }
+                test_result.update(test_result2)
+                test_results.append(test_result)
 
-            test_results.append(test_result)
+            # Prune predictions to only ones that are in w_test, create a mapping of i2w and recreate y_test.
+            if len(models) == 1:
+                predictions = model2.predict(x_test)
+            elif len(models) > 1:
+                predictions = np.zeros((len(models), len(x_test), n_classes))
+                for j, model in enumerate(models):
+                    predictions[j] = model.predict(x_test)
+                predictions = np.average(predictions, axis=0)
 
-            # Prune predictions to only ones that are in w_test, create a mapping
-            # of i2w and recreate y_test.
-            predictions = model2.predict(x_test)
             if args.lm_head:
                 test_vocab = sorted(set(w_test))
                 test_indices = [word2index[w] for w in test_vocab]
@@ -424,7 +451,7 @@ if __name__ == '__main__':
                                                predictions.shape[1]),
                                 test_i2w,
                                 y_train_freq,
-                                save_dir,
+                                f'{save_dir}/',
                                 min_train=0,
                                 prefix='eval_',
                                 suffix=f'-fold_{i}-test',
@@ -435,7 +462,7 @@ if __name__ == '__main__':
                                                predictions.shape[1]),
                                 test_i2w,
                                 y_train_freq,
-                                save_dir,
+                                f'{save_dir}/',
                                 min_train=0,
                                 suffix=f'-fold_{i}-test',
                                 title=args.model)
