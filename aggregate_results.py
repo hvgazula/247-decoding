@@ -6,7 +6,7 @@ import pandas as pd
 
 def get_results():
     results = []
-    for filename in glob.glob('results/*/*/results.json'):
+    for filename in glob.glob('results/*/*/*/results.json'):
         with open(filename, 'r') as fp:
             all_results = json.load(fp)
 

@@ -25,4 +25,4 @@ for query in args.q:
 plt.xlabel(args.x)
 plt.ylabel(args.y)
 plt.grid()
-plt.savefig('out.png')
+plt.savefig('results/plots/out.png')
