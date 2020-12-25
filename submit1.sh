@@ -19,7 +19,7 @@ echo 'Requester:' $USER
 echo 'Node:' $HOSTNAME
 echo 'Start time:' `date`
 echo "$@"
-for run in {0..1}; do
+for run in {0..4}; do
     python "$@"
 done
 echo 'End time:' `date`

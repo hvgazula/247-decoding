@@ -21,36 +21,41 @@ upload-pickle: create-pickle
 	gsutil -m cp -r $(SID)*.pkl gs://247-podcast-data/247_pickles/
 
 
-NL = $(shell expr $(words $(LAGS)) - 1)
-LAGS := $(shell echo {-2048..2048..256})
-LAGS := 0
+
+# Change the `head` argument to run a lag multiple times.
+# Each submit.sh runs a model twice by default, so `head -n 5` will give you
+# 10 models. Set it to 1 to just run it once.
+NL = $(shell expr $(shell echo $(LAGS) | wc -w) - 1)
+LAGS := $(shell yes "{-2048..2048..256}" | head -n 1 | tr '\n' ' ')
+# LAGS := 0
 
 MODES := prod comp
-MODES := comp
 MODES := prod
+MODES := comp
+
+test-ensemble:
+	$(CMD) tfsdec_main.py \
+	    --signal-pickle data/raw/$(SID)_binned_signal.pkl \
+	    --label-pickle data/raw/$(SID)_prod_labels_MWF30.pkl \
+	    --lag 0 \
+	    --fine-epochs 0 \
+	    --ensemble \
+	    --model s_$(SID)-m_prod-e_64-u_$(USR)
 
 run-decoding:
-	for lag in $(LAGS); do \
-	    $(CMD) tfsdec_main.py \
-		--subject $(SID) \
-		--lag $$lag \
-		--fine-epochs 1 \
-		--model test-s_$(SID)-e_64-u_$(USR)-l_$$lag; \
-	done
-
-run-decoding2:
 	for mode in $(MODES); do \
 	    sbatch --array=0-$(NL) submit1.sh tfsdec_main.py \
-		--signal-pickle $(SID)_binned_signal.pkl \
-		--label-pickle $(SID)_$${mode}_labels_MWF30.pkl \
+		--signal-pickle data/raw/$(SID)_binned_signal.pkl \
+		--label-pickle data/raw/$(SID)_$${mode}_labels_MWF30.pkl \
 		--lags $(LAGS) \
+		--ensemble \
 		--model s_$(SID)-m_$$mode-e_64-u_$(USR); \
 	done
 
 plot:
-	python plots.py \
-	    -q "model == 's_625-m_prod-e_64-u_zz'" \
-	       "model == 's_625-m_comp-e_64-u_zz'" \
+	python plot.py \
+	    -q "model == 's_625-m_prod-e_64-u_zz' and ensemble == True" \
+	       "model == 's_625-m_comp-e_64-u_zz' and ensemble == True" \
 	    -x lag \
 	    -y avg_rocauc_test_w_avg
-	mv -f out.png ~/tigress/
+	rsync -azp results/plots ~/tigress/
