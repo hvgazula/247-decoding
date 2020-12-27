@@ -1,10 +1,9 @@
 CMD := echo
 CMD := python
-# CMD := sbatch submit.sh
+CMD := sbatch submit1.sh
 
-EMB_TYPE := word2vec
 # EMB_TYPE := glove
-# EMB_TYPE := bert
+EMB_TYPE := bert
 # EMB_TYPE := gpt2
 
 SID := 625
@@ -14,7 +13,8 @@ MINF := 30
 # will extract all common electrodes across all conversations
 
 create-pickle:
-	$(CMD) tfs_pickling.py --subjects $(SID) \
+	$(CMD) tfs_pickling.py \
+				--subjects $(SID) \
 				--max-electrodes $(MEL) \
 				--vocab-min-freq $(MINF) \
 				--pickle;
@@ -23,4 +23,7 @@ upload-pickle: create-pickle
 	gsutil -m cp -r $(SID)*.pkl gs://247-podcast-data/247_pickles/
 
 generate-embeddings:
-	$(CMD) tfs_gen_embeddings.py --embedding-type $(EMB_TYPE)
+	mkdir -p logs
+	$(CMD) tfs_gen_embeddings.py \
+				--subject $(SID) \
+				--embedding-type $(EMB_TYPE);
