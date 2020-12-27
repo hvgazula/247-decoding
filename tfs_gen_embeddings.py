@@ -44,9 +44,8 @@ def load_pickle(file):
         datum = pickle.load(fh)
 
     df = pd.DataFrame.from_dict(datum['labels'])
-    print(df.loc[:12, 'sentence'].values)
 
-    return df[:20]
+    return df
 
 
 def tokenize_and_explode(df, tokenizer):
