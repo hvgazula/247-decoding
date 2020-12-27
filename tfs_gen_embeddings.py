@@ -1,5 +1,4 @@
 import argparse
-from logging import raiseExceptions
 import os
 import pickle
 from datetime import datetime
@@ -85,7 +84,6 @@ def load_pretrained_model(args):
 def setup_environ(args):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     base_name = f'{args.model_name}-c-{args.context_length}-{args.suffix}'
-    os.makedirs('results-predictions/' + base_name, exist_ok=True)
 
     args.base_name = base_name
     args.device = device
@@ -136,15 +134,10 @@ def parse_arguments():
                         default=False)
     parser.add_argument('--suffix', type=str, default='')
     parser.add_argument('--verbose', action='store_true', default=False)
-    parser.add_argument('--subject', type=str, default='676')
+    parser.add_argument('--subject', type=str, default='625')
     parser.add_argument('--history', action='store_true', default=False)
 
-    custom_args = [
-        '--subject', '625', '--history', '--save-hidden-states',
-        '--embedding-type', 'bert'
-    ]
-
-    args = parser.parse_args(custom_args)
+    args = parser.parse_args()
     return args
 
 
@@ -189,7 +182,6 @@ def gen_word2vec_embeddings(args, df):
 
 def map_embeddings_to_tokens(df, embed):
 
-    # df = df.reindex(columns=[*df.columns.tolist(), 'embeddings'])
     multi = df.set_index(['conversation_id', 'sentence_idx', 'sentence'])
     unique_sentence_idx = multi.index.unique().values
 
@@ -215,7 +207,7 @@ def get_unique_sentences(df):
 def gen_bert_embeddings(args, df):
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
     model = BertModel.from_pretrained('bert-base-uncased')
-
+    print('stop0')
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     unique_sentence_list = get_unique_sentences(df)
@@ -246,7 +238,6 @@ def gen_bert_embeddings(args, df):
             concat_output.append(model_output[0].detach().cpu().numpy())
     embeddings = np.concatenate(concat_output, axis=0)
 
-    print(embeddings.shape)
     emb_df = map_embeddings_to_tokens(df, embeddings)
     save_pickle(emb_df.to_dict('records'), '625_bert_embeddings')
 
