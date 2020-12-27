@@ -1,5 +1,11 @@
 CMD := echo
 CMD := python
+# CMD := sbatch submit.sh
+
+EMB_TYPE := word2vec
+# EMB_TYPE := glove
+# EMB_TYPE := bert
+# EMB_TYPE := gpt2
 
 SID := 625
 MEL := 500
@@ -15,3 +21,6 @@ create-pickle:
 
 upload-pickle: create-pickle
 	gsutil -m cp -r $(SID)*.pkl gs://247-podcast-data/247_pickles/
+
+generate-embeddings:
+	$(CMD) tfs_gen_embeddings.py --embedding-type $(EMB_TYPE)
