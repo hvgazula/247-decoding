@@ -219,10 +219,11 @@ def gen_bert_embeddings(args, df):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     unique_sentence_list = get_unique_sentences(df)
+    df = tokenize_and_explode(df, tokenizer)
+
     tokens = tokenizer.batch_encode_plus(unique_sentence_list,
                                          padding=True,
                                          return_tensors='pt')
-    raise Exception(tokens)
     input_ids_val = tokens['input_ids']
     attention_masks_val = tokens['attention_mask']
 
@@ -240,7 +241,6 @@ def gen_bert_embeddings(args, df):
                 'attention_mask': batch[1],
             }
             model_output = model(**inputs)
-            raise Exception(model_output)
             # The last hidden-state is the first element of the output tuple
             print(model_output[0].shape)
             concat_output.append(model_output[0].detach().cpu().numpy())
@@ -260,6 +260,8 @@ def gen_gpt2_embeddings(args, df):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     unique_sentence_list = get_unique_sentences(df)
+    df = tokenize_and_explode(df, tokenizer)
+
     tokens = tokenizer.batch_encode_plus(unique_sentence_list, padding=True)
     input_ids = torch.tensor(tokens)
 
@@ -295,7 +297,6 @@ def main():
 
     args.pickle_name = args.subject + '_labels.pkl'
     utter_orig = load_pickle(args.pickle_name)
-    # utter_datum = tokenize_and_explode(utter_orig, tokenizer)
 
     if args.embedding_type == 'glove':
         gen_word2vec_embeddings(args, utter_orig)
