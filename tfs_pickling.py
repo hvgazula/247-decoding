@@ -25,10 +25,7 @@ from profile_dec import profile
 def save_pickle(item, file_name):
     """Write 'item' to 'file_name.pkl'
     """
-    if '.pkl' not in file_name:
-        add_ext = '.pkl'
-    else:
-        add_ext = ''
+    add_ext = '' if file_name.endswith('.pkl') else '.pkl'
 
     file_name = os.path.join(os.getcwd(), 'pickles', file_name) + add_ext
     os.makedirs(os.path.dirname(file_name), exist_ok=True)
