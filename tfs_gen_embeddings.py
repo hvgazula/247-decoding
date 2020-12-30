@@ -11,7 +11,8 @@ import torch
 import torch.nn as nn
 import torch.utils.data as data
 from transformers import (BertForMaskedLM, BertTokenizer, GPT2LMHeadModel,
-                          GPT2Tokenizer)
+                          GPT2Tokenizer, RobertaTokenizer, RobertaForMaskedLM,
+                          BartTokenizer, BartForConditionalGeneration)
 
 
 def window(seq, n=2):
@@ -75,15 +76,6 @@ def tokenize_and_explode(df, tokenizer):
     return df
 
 
-def load_pretrained_model(args):
-    # Load pre-trained model
-    model = args.model_class.from_pretrained(args.model_name,
-                                             local_files_only=False,
-                                             output_hidden_states=True)
-    model = model.to(args.device)
-    model.eval()  # evaluation mode to deactivate the DropOut modules
-
-
 def setup_environ(args):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     base_name = f'{args.model_name}-c-{args.context_length}-{args.suffix}'
@@ -96,31 +88,36 @@ def setup_environ(args):
 
 def select_token_model(args):
 
-    args.pickle_name = args.subject + '_labels.pkl'
-
-    if 'roberta' in args.model_name:
+    if args.embedding_type == 'gpt2':
+        tokenizer_class = GPT2Tokenizer
+        model_class = GPT2LMHeadModel
+        model_name = 'gpt2'
+    elif args.embedding_type == 'roberta':
         tokenizer_class = RobertaTokenizer
         model_class = RobertaForMaskedLM
-    elif 'bert' in args.model_name:
+        model_name = 'roberta'
+    elif args.embedding_type == 'bert':
         tokenizer_class = BertTokenizer
         model_class = BertForMaskedLM
-    elif 'bart' in args.model_name:
+        model_name = 'bert-large-uncased-whole-word-masking'
+    elif args.embedding_type == 'bart':
         tokenizer_class = BartTokenizer
         model_class = BartForConditionalGeneration
+        model_name = 'bart'
     else:
         print('No model found for', args.model_name)
         exit(1)
 
-    args.tokenizer_class = tokenizer_class
-    args.model_class = model_class
+    args.model = model_class.from_pretrained(model_name,
+                                             output_hidden_states=True)
+    args.tokenizer = tokenizer_class.from_pretrained(model_name)
 
-    tokenizer = tokenizer_class.from_pretrained(args.model_name)
-    if args.context_length <= 0:
-        args.context_length = tokenizer.max_len
-    assert args.context_length <= tokenizer.max_len, \
-        'given length is greater than max length'
+    # if args.context_length <= 0:
+    #     args.context_length = args.tokenizer.max_len
+    # assert args.context_length <= args.tokenizer.max_len, \
+    #     'given length is greater than max length'
 
-    return tokenizer
+    return args
 
 
 def parse_arguments():
@@ -183,52 +180,14 @@ def get_unique_sentences(df):
                'sentence']].drop_duplicates()['sentence'].tolist()
 
 
-def gen_bert_embeddings(args, df):
-    tokenizer = BertTokenizer.from_pretrained(
-        'bert-large-uncased-whole-word-masking')
-    model = BertForMaskedLM.from_pretrained(
-        'bert-large-uncased-whole-word-masking', output_hidden_states=True)
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+def build_context_for_gpt2(args, df, model):
+    model = args.model
+    device = args.device
 
-    unique_sentence_list = get_unique_sentences(df)
-    df = tokenize_and_explode(df, tokenizer)
-
-    tokens = tokenizer.batch_encode_plus(unique_sentence_list,
-                                         padding=True,
-                                         return_tensors='pt')
-    input_ids_val = tokens['input_ids']
-    attention_masks_val = tokens['attention_mask']
-
-    dataset = data.TensorDataset(input_ids_val, attention_masks_val)
-    data_dl = data.DataLoader(dataset, batch_size=256, shuffle=True)
-
-    concat_output = []
-    with torch.no_grad():
-        model = model.to(device)
-        model.eval()
-        for i, batch in enumerate(data_dl):
-            batch = tuple(b.to(device) for b in batch)
-            inputs = {
-                'input_ids': batch[0],
-                'attention_mask': batch[1],
-            }
-            model_output = model(**inputs)
-            # The last hidden-state is the first element of the output tuple
-            print(model_output[-1].shape)
-            concat_output.append(model_output[-1].detach().cpu().numpy())
-    embeddings = np.concatenate(concat_output, axis=0)
-
-    emb_df = map_embeddings_to_tokens(df, embeddings)
-    save_pickle(emb_df.to_dict('records'), '625_bert_embeddings')
-
-    return
-
-
-def build_context_for_gpt2(args, df, model, tokenizer):
     if args.gpus > 1:
         model = nn.DataParallel(model)
 
-    model = model.to(args.device)
+    model = model.to(device)
     model.eval()
 
     final_embeddings = []
@@ -247,9 +206,7 @@ def build_context_for_gpt2(args, df, model, tokenizer):
         concat_output = []
         for i, batch in enumerate(data_dl):
             batch = batch.to(args.device)
-            print(i, batch.shape)
             model_output = model(batch)
-            # print(model_output[-1][-1].shape)
             if i == 0:
                 concat_output.append(
                     model_output[-1][-1].detach().cpu().numpy())
@@ -264,43 +221,52 @@ def build_context_for_gpt2(args, df, model, tokenizer):
         final_embeddings.append(extracted_embeddings)
 
     df['embeddings'] = pd.concat(final_embeddings, ignore_index=True)
-    save_pickle(df.to_dict('records'), '625_gpt2_contextual_embeddings')
+    output_file = '_'.join(
+        [args.subject, args.embedding_type, 'contextual_embeddings'])
+    save_pickle(df.to_dict('records'), output_file)
 
     return df
 
 
-def gen_gpt2_embeddings(args, df):
-    tokenizer = GPT2Tokenizer.from_pretrained('gpt2', add_prefix_space=True)
-    model = GPT2LMHeadModel.from_pretrained('gpt2', output_hidden_states=True)
-    tokenizer.pad_token = tokenizer.eos_token
+def generate_embeddings(args, df):
+    tokenizer = args.tokenizer
+    model = args.model
+    device = args.device
+
+    if args.embedding_type == 'gpt2':
+        tokenizer.pad_token = tokenizer.eos_token
 
     unique_sentence_list = get_unique_sentences(df)
     df = tokenize_and_explode(df, tokenizer)
 
     if args.history:
-        build_context_for_gpt2(args, df, model, tokenizer)
+        build_context_for_gpt2(args, df)
         return
 
-    input_ids = tokenizer(unique_sentence_list,
-                          padding=True,
-                          return_tensors='pt')
+    tokens = tokenizer(unique_sentence_list, padding=True, return_tensors='pt')
+    input_ids_val = tokens['input_ids']
+    attention_masks_val = tokens['attention_mask']
 
-    batch_size = 256
-    data_dl = data.DataLoader(input_ids['input_ids'],
-                              batch_size=batch_size,
-                              shuffle=True)
+    dataset = data.TensorDataset(input_ids_val, attention_masks_val)
+    data_dl = data.DataLoader(dataset, batch_size=256, shuffle=True)
 
     concat_output = []
     with torch.no_grad():
-        model = model.to(args.device)
+        model = model.to(device)
         model.eval()
-        for i, batch in enumerate(data_dl):
-            batch = batch.to(args.device)
-            model_output = model(batch)
+        for batch in data_dl:
+            batch = tuple(b.to(device) for b in batch)
+            inputs = {
+                'input_ids': batch[0],
+                'attention_mask': batch[1],
+            }
+            model_output = model(**inputs)
             concat_output.append(model_output[-1][-1].detach().cpu().numpy())
+
     embeddings = np.concatenate(concat_output, axis=0)
     emb_df = map_embeddings_to_tokens(df, embeddings)
-    save_pickle(emb_df.to_dict('records'), '625_gpt2_embeddings')
+    output_file = '_'.join([args.subject, args.embedding_type, 'embeddings'])
+    save_pickle(emb_df.to_dict('records'), output_file)
 
     return
 
@@ -310,18 +276,15 @@ def main():
     args = parse_arguments()
     setup_environ(args)
 
-    # tokenizer = select_token_model(args)
-    # load_pretrained_model(args)
+    args = select_token_model(args)
 
     args.pickle_name = args.subject + '_labels.pkl'
     utter_orig = load_pickle(args.pickle_name)
 
     if args.embedding_type == 'glove':
         gen_word2vec_embeddings(args, utter_orig)
-    elif args.embedding_type == 'bert':
-        gen_bert_embeddings(args, utter_orig)
-    elif args.embedding_type == 'gpt2':
-        gen_gpt2_embeddings(args, utter_orig)
+    else:
+        generate_embeddings(args, utter_orig)
 
     return
 
