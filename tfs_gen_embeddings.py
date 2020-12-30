@@ -42,7 +42,7 @@ def load_pickle(file):
 
     df = pd.DataFrame.from_dict(datum['labels'])
 
-    return df[:1000]
+    return df
 
 
 def tokenize_and_explode(df, tokenizer):
