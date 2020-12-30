@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --time=00:30:00
-#SBATCH --mem=32GB
-#SBATCH --gres=gpu:1
+#SBATCH --mem=128GB
+#SBATCH --gres=gpu:4
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
 #SBATCH -o './logs/%A.out'

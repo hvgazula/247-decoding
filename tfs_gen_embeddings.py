@@ -2,14 +2,28 @@ import argparse
 import os
 import pickle
 from datetime import datetime
+from itertools import islice
 
 import gensim.downloader as api
 import numpy as np
 import pandas as pd
 import torch
+import torch.nn as nn
 import torch.utils.data as data
 from transformers import (BertForMaskedLM, BertTokenizer, GPT2LMHeadModel,
                           GPT2Tokenizer)
+
+
+def window(seq, n=2):
+    "Returns a sliding window (of width n) over data from the iterable"
+    "   s -> (s0,s1,...s[n-1]), (s1,s2,...,sn), ...                   "
+    it = iter(seq)
+    result = tuple(islice(it, n))
+    if len(result) <= n:
+        yield result
+    for elem in it:
+        result = result[1:] + (elem, )
+        yield result
 
 
 def save_pickle(item, file_name):
@@ -42,7 +56,7 @@ def load_pickle(file):
 
     df = pd.DataFrame.from_dict(datum['labels'])
 
-    return df[:100]
+    return df
 
 
 def tokenize_and_explode(df, tokenizer):
@@ -57,17 +71,8 @@ def tokenize_and_explode(df, tokenizer):
     """
     df['token'] = df.word.apply(tokenizer.tokenize)
     df = df.explode('token', ignore_index=True)
-
+    df['token_id'] = df['token'].apply(tokenizer.convert_tokens_to_ids)
     return df
-
-
-def create_token_ids(args, utter_datum, tokenizer):
-    tokens = utter_datum['token'].values
-    # Convert to numerical indices
-    token_ids = torch.tensor(tokenizer.convert_tokens_to_ids(tokens),
-                             device=args.device)
-    assert len(tokens) == len(token_ids)
-    return tokens, token_ids
 
 
 def load_pretrained_model(args):
@@ -83,6 +88,7 @@ def setup_environ(args):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     base_name = f'{args.model_name}-c-{args.context_length}-{args.suffix}'
 
+    args.gpus = torch.cuda.device_count()
     args.base_name = base_name
     args.device = device
     return
@@ -137,31 +143,6 @@ def parse_arguments():
 
     args = parser.parse_args()
     return args
-
-
-def build_context(args, tokenizer):
-    context_len = args.context_length - 3  # [CLS], [SEP] hist/sent, [SEP] end
-
-    # add [CLS] + history + [SEP]
-    if args.history:
-        start, end = max(0, sentence_idxs[0] + len(sentence) - context_len), \
-            sentence_idxs[0]
-        history = token_ids[start:end]
-        # remove history from other conversations
-        history = history[np.where(
-            pd.to_numeric(utter_datum['conversation_id'][start:end]) ==
-            conversationID)[0]]
-        context = [tokenizer.cls_token_id] + history.tolist() + \
-                  [tokenizer.sep_token_id] + sentence.tolist() + \
-                  [tokenizer.sep_token_id]
-
-    else:  # add [CLS] (no history, just sentence, default)
-        context = [tokenizer.cls_token_id] +  \
-                   sentence.tolist() + [tokenizer.sep_token_id]
-
-    context = torch.tensor(context, device=device).unsqueeze(0)
-
-    return context
 
 
 def get_vector(x, glove):
@@ -243,14 +224,62 @@ def gen_bert_embeddings(args, df):
     return
 
 
+def build_context_for_gpt2(args, df, model, tokenizer):
+    if args.gpus > 1:
+        model = nn.DataParallel(model)
+
+    model = model.to(args.device)
+    model.eval()
+
+    final_embeddings = []
+    for conversation in df.conversation_id.unique():
+        token_list = df[df.conversation_id ==
+                        conversation]['token_id'].tolist()
+        sliding_windows = list(window(token_list, 1024))
+        print(
+            f'conversation: {conversation}, tokens: {len(token_list)}, #sliding: {len(sliding_windows)}'
+        )
+        input_ids = torch.tensor(sliding_windows)
+        batch_size = 1
+        data_dl = data.DataLoader(input_ids,
+                                  batch_size=batch_size,
+                                  shuffle=True)
+        concat_output = []
+        for i, batch in enumerate(data_dl):
+            batch = batch.to(args.device)
+            print(i, batch.shape)
+            model_output = model(batch)
+            # print(model_output[-1][-1].shape)
+            if i == 0:
+                concat_output.append(
+                    model_output[-1][-1].detach().cpu().numpy())
+            else:
+                concat_output.append(
+                    model_output[-1][-1][:, -1, :].detach().cpu().unsqueeze(
+                        0).numpy())
+
+        extracted_embeddings = np.concatenate(concat_output, axis=1)
+        extracted_embeddings = np.squeeze(extracted_embeddings, axis=0)
+        assert extracted_embeddings.shape[0] == len(token_list)
+        final_embeddings.append(extracted_embeddings)
+
+    df['embeddings'] = pd.concat(final_embeddings, ignore_index=True)
+    save_pickle(df.to_dict('records'), '625_gpt2_contextual_embeddings')
+
+    return df
+
+
 def gen_gpt2_embeddings(args, df):
-    tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+    tokenizer = GPT2Tokenizer.from_pretrained('gpt2', add_prefix_space=True)
     model = GPT2LMHeadModel.from_pretrained('gpt2', output_hidden_states=True)
     tokenizer.pad_token = tokenizer.eos_token
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     unique_sentence_list = get_unique_sentences(df)
     df = tokenize_and_explode(df, tokenizer)
+
+    if args.history:
+        build_context_for_gpt2(args, df, model, tokenizer)
+        return
 
     input_ids = tokenizer(unique_sentence_list,
                           padding=True,
@@ -263,19 +292,14 @@ def gen_gpt2_embeddings(args, df):
 
     concat_output = []
     with torch.no_grad():
-        model = model.to(device)
+        model = model.to(args.device)
         model.eval()
         for i, batch in enumerate(data_dl):
-            batch = batch.to(device)
+            batch = batch.to(args.device)
             model_output = model(batch)
-            # The last hidden-state is the first element of the output tuple
-            print(model_output[-1][-1].shape)
             concat_output.append(model_output[-1][-1].detach().cpu().numpy())
     embeddings = np.concatenate(concat_output, axis=0)
-
-    print(embeddings.shape)
     emb_df = map_embeddings_to_tokens(df, embeddings)
-    print(emb_df)
     save_pickle(emb_df.to_dict('records'), '625_gpt2_embeddings')
 
     return
