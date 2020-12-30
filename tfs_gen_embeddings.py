@@ -116,9 +116,7 @@ def build_context_for_gpt2(args, df, model):
             f'conversation: {conversation}, tokens: {len(token_list)}, #sliding: {len(sliding_windows)}'
         )
         input_ids = torch.tensor(sliding_windows)
-        data_dl = data.DataLoader(input_ids,
-                                  batch_size=1,
-                                  shuffle=True)
+        data_dl = data.DataLoader(input_ids, batch_size=1, shuffle=True)
         concat_output = []
         for i, batch in enumerate(data_dl):
             batch = batch.to(args.device)
@@ -237,11 +235,9 @@ def select_token_model(args):
 
 def setup_environ(args):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    base_name = f'{args.model_name}-c-{args.context_length}-{args.suffix}'
-
-    args.gpus = torch.cuda.device_count()
-    args.base_name = base_name
     args.device = device
+    args.pickle_name = args.subject + '_labels.pkl'
+    args.gpus = torch.cuda.device_count()
     return
 
 
@@ -274,13 +270,12 @@ def main():
 
     args = select_token_model(args)
 
-    args.pickle_name = args.subject + '_labels.pkl'
-    utter_orig = load_pickle(args.pickle_name)
+    utterance_df = load_pickle(args.pickle_name)
 
     if args.embedding_type == 'glove':
-        gen_word2vec_embeddings(args, utter_orig)
+        gen_word2vec_embeddings(args, utterance_df)
     else:
-        generate_embeddings(args, utter_orig)
+        generate_embeddings(args, utterance_df)
 
     return
 
