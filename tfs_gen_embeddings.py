@@ -7,11 +7,9 @@ import gensim.downloader as api
 import numpy as np
 import pandas as pd
 import torch
-# from transformers import (BartForConditionalGeneration, BartTokenizer,
-#                           BertForMaskedLM, BertTokenizer, RobertaForMaskedLM,
-#                           RobertaTokenizer)
 import torch.utils.data as data
-from transformers import BertModel, BertTokenizer, GPT2Model, GPT2Tokenizer
+from transformers import (BertForMaskedLM, BertTokenizer, GPT2LMHeadModel,
+                          GPT2Tokenizer)
 
 
 def save_pickle(item, file_name):
@@ -44,7 +42,7 @@ def load_pickle(file):
 
     df = pd.DataFrame.from_dict(datum['labels'])
 
-    return df
+    return df[:100]
 
 
 def tokenize_and_explode(df, tokenizer):
@@ -205,9 +203,10 @@ def get_unique_sentences(df):
 
 
 def gen_bert_embeddings(args, df):
-    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-    model = BertModel.from_pretrained('bert-base-uncased')
-    print('stop0')
+    tokenizer = BertTokenizer.from_pretrained(
+        'bert-large-uncased-whole-word-masking')
+    model = BertForMaskedLM.from_pretrained(
+        'bert-large-uncased-whole-word-masking', output_hidden_states=True)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     unique_sentence_list = get_unique_sentences(df)
@@ -234,8 +233,8 @@ def gen_bert_embeddings(args, df):
             }
             model_output = model(**inputs)
             # The last hidden-state is the first element of the output tuple
-            print(model_output[0].shape)
-            concat_output.append(model_output[0].detach().cpu().numpy())
+            print(model_output[-1].shape)
+            concat_output.append(model_output[-1].detach().cpu().numpy())
     embeddings = np.concatenate(concat_output, axis=0)
 
     emb_df = map_embeddings_to_tokens(df, embeddings)
@@ -246,18 +245,21 @@ def gen_bert_embeddings(args, df):
 
 def gen_gpt2_embeddings(args, df):
     tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-    model = GPT2Model.from_pretrained('gpt2')
+    model = GPT2LMHeadModel.from_pretrained('gpt2', output_hidden_states=True)
     tokenizer.pad_token = tokenizer.eos_token
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     unique_sentence_list = get_unique_sentences(df)
     df = tokenize_and_explode(df, tokenizer)
 
-    tokens = tokenizer.batch_encode_plus(unique_sentence_list, padding=True)
-    input_ids = torch.tensor(tokens)
+    input_ids = tokenizer(unique_sentence_list,
+                          padding=True,
+                          return_tensors='pt')
 
     batch_size = 256
-    data_dl = data.DataLoader(input_ids, batch_size=batch_size, shuffle=True)
+    data_dl = data.DataLoader(input_ids['input_ids'],
+                              batch_size=batch_size,
+                              shuffle=True)
 
     concat_output = []
     with torch.no_grad():
@@ -267,12 +269,13 @@ def gen_gpt2_embeddings(args, df):
             batch = batch.to(device)
             model_output = model(batch)
             # The last hidden-state is the first element of the output tuple
-            print(model_output[0][-1].shape)
-            concat_output.append(model_output[0].detach().cpu().numpy())
+            print(model_output[-1][-1].shape)
+            concat_output.append(model_output[-1][-1].detach().cpu().numpy())
     embeddings = np.concatenate(concat_output, axis=0)
 
     print(embeddings.shape)
     emb_df = map_embeddings_to_tokens(df, embeddings)
+    print(emb_df)
     save_pickle(emb_df.to_dict('records'), '625_gpt2_embeddings')
 
     return
