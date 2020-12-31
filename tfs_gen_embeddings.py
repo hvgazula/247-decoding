@@ -10,9 +10,9 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torch.utils.data as data
-from transformers import (BertForMaskedLM, BertTokenizer, GPT2LMHeadModel,
-                          GPT2Tokenizer, RobertaTokenizer, RobertaForMaskedLM,
-                          BartTokenizer, BartForConditionalGeneration)
+from transformers import (BartForConditionalGeneration, BartTokenizer,
+                          BertForMaskedLM, BertTokenizer, GPT2LMHeadModel,
+                          GPT2Tokenizer, RobertaForMaskedLM, RobertaTokenizer)
 
 
 def save_pickle(item, file_name):
@@ -97,15 +97,12 @@ def window(seq, n=2):
         yield result
 
 
-def build_context_for_gpt2(args, df, model):
+def build_context_for_gpt2(args, df):
     model = args.model
     device = args.device
 
     if args.gpus > 1:
         model = nn.DataParallel(model)
-
-    model = model.to(device)
-    model.eval()
 
     final_embeddings = []
     for conversation in df.conversation_id.unique():
@@ -117,17 +114,22 @@ def build_context_for_gpt2(args, df, model):
         )
         input_ids = torch.tensor(sliding_windows)
         data_dl = data.DataLoader(input_ids, batch_size=1, shuffle=True)
-        concat_output = []
-        for i, batch in enumerate(data_dl):
-            batch = batch.to(args.device)
-            model_output = model(batch)
-            if i == 0:
-                concat_output.append(
-                    model_output[-1][-1].detach().cpu().numpy())
-            else:
-                concat_output.append(
-                    model_output[-1][-1][:, -1, :].detach().cpu().unsqueeze(
-                        0).numpy())
+
+        with torch.no_grad():
+            model = model.to(device)
+            model.eval()
+
+            concat_output = []
+            for i, batch in enumerate(data_dl):
+                batch = batch.to(args.device)
+                model_output = model(batch)
+                if i == 0:
+                    concat_output.append(
+                        model_output[-1][-1].detach().cpu().numpy())
+                else:
+                    concat_output.append(
+                        model_output[-1][-1]
+                        [:, -1, :].detach().cpu().unsqueeze(0).numpy())
 
         extracted_embeddings = np.concatenate(concat_output, axis=1)
         extracted_embeddings = np.squeeze(extracted_embeddings, axis=0)
@@ -147,9 +149,6 @@ def generate_embeddings(args, df):
     model = args.model
     device = args.device
 
-    model = model.to(device)
-    model.eval()
-
     if args.embedding_type == 'gpt2':
         tokenizer.pad_token = tokenizer.eos_token
 
@@ -167,15 +166,19 @@ def generate_embeddings(args, df):
     dataset = data.TensorDataset(input_ids_val, attention_masks_val)
     data_dl = data.DataLoader(dataset, batch_size=256, shuffle=True)
 
-    concat_output = []
-    for batch in data_dl:
-        batch = tuple(b.to(device) for b in batch)
-        inputs = {
-            'input_ids': batch[0],
-            'attention_mask': batch[1],
-        }
-        model_output = model(**inputs)
-        concat_output.append(model_output[-1][-1].detach().cpu().numpy())
+    with torch.no_grad():
+        model = model.to(device)
+        model.eval()
+
+        concat_output = []
+        for batch in data_dl:
+            batch = tuple(b.to(device) for b in batch)
+            inputs = {
+                'input_ids': batch[0],
+                'attention_mask': batch[1],
+            }
+            model_output = model(**inputs)
+            concat_output.append(model_output[-1][-1].detach().cpu().numpy())
 
     embeddings = np.concatenate(concat_output, axis=0)
     emb_df = map_embeddings_to_tokens(df, embeddings)
