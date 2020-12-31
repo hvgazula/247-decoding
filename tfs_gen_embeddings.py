@@ -42,7 +42,7 @@ def load_pickle(file):
 
     df = pd.DataFrame.from_dict(datum['labels'])
 
-    return df
+    return df[:100]
 
 
 def tokenize_and_explode(df, tokenizer):
@@ -97,12 +97,18 @@ def window(seq, n=2):
         yield result
 
 
-def build_context_for_gpt2(args, df):
+def generate_embeddings_with_context(args, df):
+    tokenizer = args.tokenizer
     model = args.model
     device = args.device
 
     if args.gpus > 1:
         model = nn.DataParallel(model)
+
+    df = tokenize_and_explode(df, tokenizer)
+
+    if args.embedding_type == 'gpt2':
+        tokenizer.pad_token = tokenizer.eos_token
 
     final_embeddings = []
     for conversation in df.conversation_id.unique():
@@ -149,15 +155,11 @@ def generate_embeddings(args, df):
     model = args.model
     device = args.device
 
+    df = tokenize_and_explode(df, tokenizer)
+    unique_sentence_list = get_unique_sentences(df)
+
     if args.embedding_type == 'gpt2':
         tokenizer.pad_token = tokenizer.eos_token
-
-    unique_sentence_list = get_unique_sentences(df)
-    df = tokenize_and_explode(df, tokenizer)
-
-    if args.history:
-        build_context_for_gpt2(args, df)
-        return
 
     tokens = tokenizer(unique_sentence_list, padding=True, return_tensors='pt')
     input_ids_val = tokens['input_ids']
@@ -202,7 +204,18 @@ def gen_word2vec_embeddings(args, df):
     return
 
 
-def select_token_model(args):
+def setup_environ(args):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    args.device = device
+    args.pickle_name = args.subject + '_labels.pkl'
+    args.gpus = torch.cuda.device_count()
+
+    if args.gpus > 1:
+        args.model = nn.DataParallel(args.model)
+    return
+
+
+def select_tokenizer_and_model(args):
 
     if args.embedding_type == 'gpt2':
         tokenizer_class = GPT2Tokenizer
@@ -233,14 +246,6 @@ def select_token_model(args):
     # assert args.context_length <= args.tokenizer.max_len, \
     #     'given length is greater than max length'
 
-    return args
-
-
-def setup_environ(args):
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    args.device = device
-    args.pickle_name = args.subject + '_labels.pkl'
-    args.gpus = torch.cuda.device_count()
     return
 
 
@@ -262,18 +267,22 @@ def parse_arguments():
     parser.add_argument('--subject', type=str, default='625')
     parser.add_argument('--history', action='store_true', default=False)
 
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def main():
-
     args = parse_arguments()
+    select_tokenizer_and_model(args)
     setup_environ(args)
 
-    args = select_token_model(args)
-
     utterance_df = load_pickle(args.pickle_name)
+
+    if args.history:
+        if args.embedding_type == 'gpt2':
+            generate_embeddings_with_context(args, utterance_df)
+        else:
+            print('TODO: Generate embeddings for this model with context')
+        return
 
     if args.embedding_type == 'glove':
         gen_word2vec_embeddings(args, utterance_df)
