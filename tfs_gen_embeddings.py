@@ -102,7 +102,7 @@ def extract_token_embeddings(concat_output):
     if concatenated_embeddings.shape[0] == 1:
         return np.squeeze(concatenated_embeddings, axis=0)
     first_window_all_tokens = concatenated_embeddings[0]
-    other_windows_last_token = concatenated_embeddings[:, -1, :]
+    other_windows_last_token = concatenated_embeddings[1:, -1, :]
     extracted_embeddings = np.concatenate(
         [first_window_all_tokens, other_windows_last_token], axis=0)
     return extracted_embeddings
@@ -138,18 +138,17 @@ def generate_embeddings_with_context(args, df):
 
             concat_output = []
             for i, batch in enumerate(data_dl):
+                print(f'batch: {i}')
                 batch = batch.to(args.device)
-                print(batch.shape)
                 model_output = model(batch)
                 concat_output.append(
                         model_output[-1][-1].detach().cpu().numpy())
-                print(model_output[-1][-1].shape)
 
         extracted_embeddings = extract_token_embeddings(concat_output)
         assert extracted_embeddings.shape[0] == len(token_list)
         final_embeddings.append(extracted_embeddings)
 
-    df['embeddings'] = np.concatenate(final_embeddings, axis=0)
+    df['embeddings'] = np.concatenate(final_embeddings, axis=0).tolist()
     output_file = '_'.join(
         [args.subject, args.embedding_type, 'contextual_embeddings'])
     save_pickle(df.to_dict('records'), output_file)
