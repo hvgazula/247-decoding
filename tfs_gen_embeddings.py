@@ -97,6 +97,17 @@ def window(seq, n=2):
         yield result
 
 
+def extract_token_embeddings(concat_output):
+    concatenated_embeddings = np.concatenate(concat_output, axis=0)
+    if concatenated_embeddings.shape[0] == 1:
+        return np.squeeze(concatenated_embeddings, axis=0)
+    first_window_all_tokens = concatenated_embeddings[0]
+    other_windows_last_token = concatenated_embeddings[:, -1, :]
+    extracted_embeddings = np.concatenate(
+        [first_window_all_tokens, other_windows_last_token], axis=0)
+    return extracted_embeddings
+
+
 def generate_embeddings_with_context(args, df):
     tokenizer = args.tokenizer
     model = args.model
@@ -111,10 +122,10 @@ def generate_embeddings_with_context(args, df):
         tokenizer.pad_token = tokenizer.eos_token
 
     final_embeddings = []
-    for conversation in df.conversation_id.unique():
+    for conversation in df.conversation_id.unique()[:6]:
         token_list = df[df.conversation_id ==
                         conversation]['token_id'].tolist()
-        sliding_windows = list(window(token_list, 1024))
+        sliding_windows = list(window(token_list, 1024))[:50]
         print(
             f'conversation: {conversation}, tokens: {len(token_list)}, #sliding: {len(sliding_windows)}'
         )
@@ -129,20 +140,14 @@ def generate_embeddings_with_context(args, df):
             for i, batch in enumerate(data_dl):
                 batch = batch.to(args.device)
                 model_output = model(batch)
-                if i == 0:
-                    concat_output.append(
+                concat_output.append(
                         model_output[-1][-1].detach().cpu().numpy())
-                else:
-                    concat_output.append(
-                        model_output[-1][-1]
-                        [:, -1, :].detach().cpu().unsqueeze(0).numpy())
 
-        extracted_embeddings = np.concatenate(concat_output, axis=1)
-        extracted_embeddings = np.squeeze(extracted_embeddings, axis=0)
+        extracted_embeddings = extract_token_embeddings(concat_output)
         assert extracted_embeddings.shape[0] == len(token_list)
         final_embeddings.append(extracted_embeddings)
 
-    df['embeddings'] = pd.concat(final_embeddings, ignore_index=True)
+    df['embeddings'] = np.concatenate(final_embeddings, axis=0)
     output_file = '_'.join(
         [args.subject, args.embedding_type, 'contextual_embeddings'])
     save_pickle(df.to_dict('records'), output_file)
