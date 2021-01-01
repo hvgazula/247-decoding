@@ -42,7 +42,7 @@ def load_pickle(file):
 
     df = pd.DataFrame.from_dict(datum['labels'])
 
-    return df[:100]
+    return df
 
 
 def tokenize_and_explode(df, tokenizer):
@@ -122,15 +122,15 @@ def generate_embeddings_with_context(args, df):
         tokenizer.pad_token = tokenizer.eos_token
 
     final_embeddings = []
-    for conversation in df.conversation_id.unique()[:6]:
+    for conversation in df.conversation_id.unique():
         token_list = df[df.conversation_id ==
                         conversation]['token_id'].tolist()
-        sliding_windows = list(window(token_list, 1024))[:50]
+        sliding_windows = list(window(token_list, 1024))
         print(
             f'conversation: {conversation}, tokens: {len(token_list)}, #sliding: {len(sliding_windows)}'
         )
         input_ids = torch.tensor(sliding_windows)
-        data_dl = data.DataLoader(input_ids, batch_size=1, shuffle=True)
+        data_dl = data.DataLoader(input_ids, batch_size=16, shuffle=True)
 
         with torch.no_grad():
             model = model.to(device)
@@ -139,9 +139,11 @@ def generate_embeddings_with_context(args, df):
             concat_output = []
             for i, batch in enumerate(data_dl):
                 batch = batch.to(args.device)
+                print(batch.shape)
                 model_output = model(batch)
                 concat_output.append(
                         model_output[-1][-1].detach().cpu().numpy())
+                print(model_output[-1][-1].shape)
 
         extracted_embeddings = extract_token_embeddings(concat_output)
         assert extracted_embeddings.shape[0] == len(token_list)
