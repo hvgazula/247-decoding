@@ -1,11 +1,15 @@
 #!/bin/bash
-#SBATCH --time=00:30:00
-#SBATCH --mem=128GB
-#SBATCH --gres=gpu:4
+#SBATCH --time=03:00:00
+#SBATCH --mem=64GB
+#SBATCH --gres=gpu:1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
 #SBATCH -o './logs/%A.out'
 #SBATCH -e './logs/%A.err'
+#SBATCH --mail-type=begin
+#SBATCH --mail-type=fail
+#SBATCH --mail-type=end
+#SBATCH --mail-user=hvgazula@umich.edu
 
 if [[ "$HOSTNAME" == *"tiger"* ]]
 then
