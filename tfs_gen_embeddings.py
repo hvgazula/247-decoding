@@ -170,8 +170,6 @@ def generate_embeddings_with_context(args, df):
     df['embeddings'] = np.concatenate(final_embeddings, axis=0).tolist()
     # TODO: convert embeddings dtype from object to float
 
-    output_file = '_'.join(
-        [args.subject, args.embedding_type, 'contextual_embeddings'])
     save_pickle(df.to_dict('records'), output_file)
 
     return df
@@ -211,8 +209,8 @@ def generate_embeddings(args, df):
 
     embeddings = np.concatenate(concat_output, axis=0)
     emb_df = map_embeddings_to_tokens(df, embeddings)
-    output_file = '_'.join([args.subject, args.embedding_type, 'embeddings'])
-    save_pickle(emb_df.to_dict('records'), output_file)
+
+    save_pickle(emb_df.to_dict('records'), args.output_file)
 
     return
 
@@ -227,19 +225,27 @@ def get_vector(x, glove):
 def gen_word2vec_embeddings(args, df):
     glove = api.load('glove-wiki-gigaword-50')
     df['embeddings'] = df['word'].apply(lambda x: get_vector(x, glove))
-    save_pickle(df.to_dict('records'), '625_glove50_embeddings')
+    save_pickle(df.to_dict('records'), args.output_file)
     return
 
 
 def setup_environ(args):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     args.device = device
-    args.pickle_name = os.path.join(os.path.getcwd(), 'pickles',
+    args.pickle_name = os.path.join(os.getcwd(), 'pickles',
                                     args.subject + '_labels.pkl')
-    args.gpus = torch.cuda.device_count()
 
+    args.gpus = torch.cuda.device_count()
     if args.gpus > 1:
         args.model = nn.DataParallel(args.model)
+
+    if args.history:
+        args.output_file = '_'.join(
+            [args.subject, args.embedding_type, 'contextual_embeddings'])
+    else:
+        args.output_file = '_'.join(
+            [args.subject, args.embedding_type, 'embeddings'])
+
     return
 
 
@@ -261,6 +267,8 @@ def select_tokenizer_and_model(args):
         tokenizer_class = BartTokenizer
         model_class = BartForConditionalGeneration
         model_name = 'bart'
+    elif args.embedding_type == 'glove50':
+        return
     else:
         print('No model found for', args.model_name)
         exit(1)
@@ -312,7 +320,7 @@ def main():
             print('TODO: Generate embeddings for this model with context')
         return
 
-    if args.embedding_type == 'glove':
+    if args.embedding_type == 'glove50':
         gen_word2vec_embeddings(args, utterance_df)
     else:
         generate_embeddings(args, utterance_df)
