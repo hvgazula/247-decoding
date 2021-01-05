@@ -234,7 +234,8 @@ def gen_word2vec_embeddings(args, df):
 def setup_environ(args):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     args.device = device
-    args.pickle_name = args.subject + '_labels.pkl'
+    args.pickle_name = os.path.join(os.path.getcwd(), 'pickles',
+                                    args.subject + '_labels.pkl')
     args.gpus = torch.cuda.device_count()
 
     if args.gpus > 1:
