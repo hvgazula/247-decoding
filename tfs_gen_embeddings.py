@@ -295,8 +295,7 @@ def parse_arguments():
     parser.add_argument('--subject', type=str, default='625')
     parser.add_argument('--history', action='store_true', default=False)
 
-    custom_args = ['--embedding-type', 'bert']
-    return parser.parse_args(custom_args)
+    return parser.parse_args()
 
 
 def main():
