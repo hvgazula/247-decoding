@@ -61,8 +61,10 @@ def tokenize_and_explode(args, df, tokenizer):
 
     if args.embedding_type == 'gpt2':
         df['gpt2_token_is_root'] = chr(288) + df['word'] == df['token']
+    elif args.embedding_type == 'bert':
+        df['bert_token_is_root'] = df['word'] == df['token']
 
-    return df[df.conversation_id.isin([71])]
+    return df
 
 
 def map_embeddings_to_tokens(df, embed):
@@ -293,7 +295,8 @@ def parse_arguments():
     parser.add_argument('--subject', type=str, default='625')
     parser.add_argument('--history', action='store_true', default=False)
 
-    return parser.parse_args()
+    custom_args = ['--embedding-type', 'bert']
+    return parser.parse_args(custom_args)
 
 
 def main():
