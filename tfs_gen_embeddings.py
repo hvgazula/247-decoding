@@ -113,8 +113,8 @@ def extract_token_embeddings(concat_output):
     # the first token is always empty
     init_token_embedding = np.empty((1, 768)) * np.nan
 
-    # From the first example take all embeddings except the first one
-    first_window_all_tokens = concatenated_embeddings[0, 1:, :]
+    # From the first example take all embeddings except the last one
+    first_window_all_tokens = concatenated_embeddings[0, :-1, :]
 
     # From all other examples take the penultimate embeddings
     other_windows_last_token = concatenated_embeddings[1:, -2, :]
