@@ -45,7 +45,7 @@ def load_pickle(file):
     return df
 
 
-def tokenize_and_explode(df, tokenizer):
+def tokenize_and_explode(args, df, tokenizer):
     """Tokenizes the words/labels and creates a row for each token
 
     Args:
@@ -58,7 +58,11 @@ def tokenize_and_explode(df, tokenizer):
     df['token'] = df.word.apply(tokenizer.tokenize)
     df = df.explode('token', ignore_index=True)
     df['token_id'] = df['token'].apply(tokenizer.convert_tokens_to_ids)
-    return df
+
+    if args.embedding_type == 'gpt2':
+        df['gpt2_token_is_root'] = chr(288) + df['word'] == df['token']
+
+    return df[df.conversation_id.isin([71])]
 
 
 def map_embeddings_to_tokens(df, embed):
@@ -98,13 +102,26 @@ def window(seq, n=2):
 
 
 def extract_token_embeddings(concat_output):
+    """(batch_size, max_len, embedding_size)"""
+    # concatenate all batches
     concatenated_embeddings = np.concatenate(concat_output, axis=0)
     if concatenated_embeddings.shape[0] == 1:
         return np.squeeze(concatenated_embeddings, axis=0)
-    first_window_all_tokens = concatenated_embeddings[0]
-    other_windows_last_token = concatenated_embeddings[1:, -1, :]
-    extracted_embeddings = np.concatenate(
-        [first_window_all_tokens, other_windows_last_token], axis=0)
+
+    # the first token is always empty
+    init_token_embedding = np.empty((1, 768)) * np.nan
+
+    # From the first example take all embeddings except the first one
+    first_window_all_tokens = concatenated_embeddings[0, 1:, :]
+
+    # From all other examples take the penultimate embeddings
+    other_windows_last_token = concatenated_embeddings[1:, -2, :]
+
+    extracted_embeddings = np.concatenate([
+        init_token_embedding, first_window_all_tokens, other_windows_last_token
+    ],
+                                          axis=0)
+
     return extracted_embeddings
 
 
@@ -116,7 +133,7 @@ def generate_embeddings_with_context(args, df):
     if args.gpus > 1:
         model = nn.DataParallel(model)
 
-    df = tokenize_and_explode(df, tokenizer)
+    df = tokenize_and_explode(args, df, tokenizer)
 
     if args.embedding_type == 'gpt2':
         tokenizer.pad_token = tokenizer.eos_token
@@ -142,13 +159,15 @@ def generate_embeddings_with_context(args, df):
                 batch = batch.to(args.device)
                 model_output = model(batch)
                 concat_output.append(
-                        model_output[-1][-1].detach().cpu().numpy())
+                    model_output[-1][-1].detach().cpu().numpy())
 
         extracted_embeddings = extract_token_embeddings(concat_output)
         assert extracted_embeddings.shape[0] == len(token_list)
         final_embeddings.append(extracted_embeddings)
 
     df['embeddings'] = np.concatenate(final_embeddings, axis=0).tolist()
+    # TODO: convert embeddings dtype from object to float
+
     output_file = '_'.join(
         [args.subject, args.embedding_type, 'contextual_embeddings'])
     save_pickle(df.to_dict('records'), output_file)
@@ -161,7 +180,7 @@ def generate_embeddings(args, df):
     model = args.model
     device = args.device
 
-    df = tokenize_and_explode(df, tokenizer)
+    df = tokenize_and_explode(args, df, tokenizer)
     unique_sentence_list = get_unique_sentences(df)
 
     if args.embedding_type == 'gpt2':
@@ -172,7 +191,7 @@ def generate_embeddings(args, df):
     attention_masks_val = tokens['attention_mask']
 
     dataset = data.TensorDataset(input_ids_val, attention_masks_val)
-    data_dl = data.DataLoader(dataset, batch_size=256, shuffle=True)
+    data_dl = data.DataLoader(dataset, batch_size=16, shuffle=True)
 
     with torch.no_grad():
         model = model.to(device)
@@ -245,7 +264,8 @@ def select_tokenizer_and_model(args):
 
     args.model = model_class.from_pretrained(model_name,
                                              output_hidden_states=True)
-    args.tokenizer = tokenizer_class.from_pretrained(model_name)
+    args.tokenizer = tokenizer_class.from_pretrained(model_name,
+                                                     add_prefix_space=True)
 
     # if args.context_length <= 0:
     #     args.context_length = args.tokenizer.max_len
@@ -280,7 +300,6 @@ def main():
     args = parse_arguments()
     select_tokenizer_and_model(args)
     setup_environ(args)
-
     utterance_df = load_pickle(args.pickle_name)
 
     if args.history:
